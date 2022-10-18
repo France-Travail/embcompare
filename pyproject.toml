@@ -1,0 +1,46 @@
+[project]
+name = "embsuivi"
+version = "0.0.1"
+description = "Suivi des embeddings"
+authors = [
+    { name = "Agence Data Services PE Aix / Nantes" },
+    { name = "Hakim", email = "hakim.cheikh@pole-emploi.fr" },
+]
+readme = "README.md"
+requires-python = ">=3.7,<4.0"
+dependencies = [
+    "gensim>=4.0,<5.0",
+    "scikit-learn>=1.1,<1.2",
+    "numpy>=1.19,<2.0",
+    "pandas>=1.3,<2.0",
+    "loguru",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+notebook = ["ipykernel"]
+streamlit = [
+    "streamlit>=1.10,<1.11",
+    "altair>=4.0,<5.0",
+    "matplotlib>=3.3,<3.4",
+]
+dev = ["black>=19.0", "isort>=4.3", "pytest>=7.0,<8.0", "pytest-cov>=3.0,<4.0"]
+
+[project.urls]
+homepage = "https://git-scm.pole-emploi.intra/edan1/socle-ia/romeo/romeo_c2v"
+documentation = "https://git-scm.pole-emploi.intra/edan1/socle-ia/romeo/romeo_c2v"
+repository = "https://git-scm.pole-emploi.intra/edan1/socle-ia/romeo/romeo_c2v"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=embsuivi --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["src"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

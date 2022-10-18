@@ -1,0 +1,27 @@
+# IDE
+.idea
+.vscode
+
+# pycache
+__pycache__
+*.pyc
+
+# Assets
+embsuivi-data/**
+
+# Virtualenv and local
+local
+.local
+venv**
+.venv**
+
+# Tests
+.coverage
+
+# Packaging
+dist/**
+build/**
+**/*egg-info*
+
+# logs
+*.log
