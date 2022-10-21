@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from random import choices
+from random import sample
 
 import altair as alt
 import matplotlib.pyplot as plt
@@ -25,6 +25,8 @@ DIR_EMBEDDINGS = DIR_DATA / "embeddings"
 COLORMAP = plt.cm.get_cmap("RdYlBu_r")
 COLOR_BLUE = "#193C40"
 COLOR_ORANGE = "#D96941"
+
+DEFAULT_MAX_EMB_SIZE = 30000
 
 st.title("Comparaison générale de deux embeddings")
 
@@ -90,19 +92,43 @@ n_neighbors = st.slider(
     "Nombre de voisins :",
     min_value=1,
     max_value=100,
-    value=50,
+    value=25,
     key="n_neighbors",
 )
 
+# On effectue un sampling s'il y a trop de clés dans les embeddings
+with st.expander("Paramètres avancés"):
+    col1, col2 = st.columns(2)
+    with col1:
+        max_emb_size = st.number_input(
+            "Taille d'embedding à partir de laquelle effectuer un sous-échantillonage :",
+            min_value=10000,
+            max_value=200000,
+            step=10000,
+            value=DEFAULT_MAX_EMB_SIZE,
+            key="max_emb_size",
+        )
+    with col2:
+        st.warning(
+            f"Le temps de calcul des voisinages augmente avec le carré du nombre d'élements. "
+            f"{DEFAULT_MAX_EMB_SIZE} éléments semble être un bon compromis."
+        )
 
+
+@st.cache
 def initiate_comparator(n_neighbors, emb1_name, emb2_name):
     emb1_path = embeddings_dispo[emb1_name]
-    logger.info(f"Chargement de l'embedding {emb1_path}")
+    logger.info(f"Chargement de l'embedding {emb1_name} ({emb1_path})")
     emb1 = load_facebook_vectors(emb1_path)
 
     emb2_path = embeddings_dispo[emb2_name]
-    logger.info(f"Chargement de l'embedding {emb2_path}")
+    logger.info(f"Chargement de l'embedding {emb2_name} ({emb2_path})")
     emb2 = load_facebook_vectors(emb2_path)
+
+    logger.info(f"Sampling des embedding")
+    emb1, emb2 = EmbeddingsComparator.sample_embeddings(
+        emb1, emb2, n_samples=max_emb_size
+    )
 
     logger.info(f"Initialisation comparator")
     comparator = EmbeddingsComparator(
@@ -336,13 +362,13 @@ def afficher_similarites(similarites_elements: dict):
             with col1:
                 st.markdown(
                     "\n".join(
-                        [f"{i+1}. key" for i, key in enumerate(comparison[emb1_name])]
+                        [f"{i+1}. {key}" for i, key in enumerate(comparison[emb1_name])]
                     )
                 )
             with col2:
                 st.markdown(
                     "\n".join(
-                        [f"{i+1}. key" for i, key in enumerate(comparison[emb2_name])]
+                        [f"{i+1}. {key}" for i, key in enumerate(comparison[emb2_name])]
                     )
                 )
 
@@ -384,7 +410,7 @@ nb_random = st.slider(
 )
 
 keys = list(comparator.get_common_keys([emb1_name, emb2_name]))
-keys_random = sorted(choices(keys, k=nb_random), key=neighborhood_sim.get)
+keys_random = sorted(sample(keys, nb_random), key=neighborhood_sim.get)
 
 afficher_similarites(
     comparator.get_neighborhood_comparison(emb1_name, emb2_name, keys_random)

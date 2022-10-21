@@ -2,6 +2,7 @@ import json
 import pickle
 from itertools import combinations
 from pathlib import Path
+from random import sample
 from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
@@ -802,3 +803,43 @@ class EmbeddingsComparator:
             embedding.add_vector(key, key_emb)
 
         return embedding
+
+    @staticmethod
+    def sample_embeddings(
+        *embeddings: KeyedVectors, n_samples: int = 30000
+    ) -> List[KeyedVectors]:
+        """Create sampled embeddings containing the same keys
+
+        Args:
+            n_samples (int, optional): number of sample. Defaults to 30000.
+
+        Returns:
+            List[KeyedVectors]: sampled embeddings
+        """
+        # Détermination des clés en commun
+        common_words = None
+        for emb in embeddings:
+            if common_words is None:
+                common_words = set(emb.index_to_key)
+            else:
+                common_words = common_words.intersection(emb.index_to_key)
+
+        # S'il n'y a pas assez de clés en commun, on renvoie les embeddings tels quels
+        if n_samples >= len(common_words):
+            return embeddings
+
+        # Sinon on crée de nouveaux embeddings contenant des clés en commun tirées au sort
+        random_words = sample(common_words, int(n_samples))
+        sampled_embeddings = []
+
+        for emb in embeddings:
+            sampled_emb: KeyedVectors = KeyedVectors(
+                vector_size=emb.vectors.shape[1],
+                count=n_samples,
+            )
+            for key in random_words:
+                sampled_emb.add_vector(key, emb.get_vector(key))
+
+            sampled_embeddings.append(sampled_emb)
+
+        return sampled_embeddings
