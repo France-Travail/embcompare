@@ -59,6 +59,55 @@ def levenshtein(s1: Iterable, s2: Iterable) -> float:
     return previous_row[-1] / len(s1)
 
 
+def get_common_keys(embeddings: List[KeyedVectors]) -> List[str]:
+    """Return common elements from a list of KeyedVectors
+
+    The resulting key list is sorted by the mean positions of elements
+    in the embeddings.
+    Thus, if elements are sorted by their frequencies in the embeddings
+    the resulting common keys are also.
+
+    Args:
+        embeddings (List[KeyedVectors]): list of KeyedVectors objects
+
+    Returns:
+        List[str]: Common keys (sorted by their mean positions)
+    """
+
+    if not embeddings:
+        return []
+
+    common_keys = None
+    for embedding in embeddings:
+        embedding_length = len(embedding.key_to_index)
+
+        # common_keys is initialized as a dict whose keys are common elements
+        # and values their positions (we assume that elements are sorted by
+        # frequency)
+        if common_keys is None:
+            common_keys = {
+                key: ind / embedding_length
+                for key, ind in embedding.key_to_index.items()
+            }
+
+        # Then for each element in the next embedding, sum positions such as
+        # we will be able to sort elements by their mean positions
+        else:
+            for key, ind in embedding.key_to_index.items():
+                if key in common_keys:
+                    common_keys[key] += ind / embedding_length
+
+            # all keys that are in common_keys but not in the current embedding
+            # are removed from common_keys
+            for key in [
+                key for key in common_keys if key not in embedding.key_to_index
+            ]:
+                del common_keys[key]
+
+    # Finally we return common keys sorted by their mean positions
+    return sorted(common_keys, key=common_keys.get)
+
+
 class EmbeddingsComparator:
     def __init__(self, *embeddings, n_neighbors: int = 25):
         self.embeddings: Dict[KeyedVectors] = {}
@@ -113,20 +162,18 @@ class EmbeddingsComparator:
         """Object representation"""
         return f"EmbeddingsComparator[{', '.join(self.embeddings)}]"
 
-    def get_common_keys(self, embedding_names: List[str] = None) -> set:
+    def get_common_keys(self, embedding_names: List[str] = None) -> list:
         """Get common keys between all embeddings"""
-        common_keys = None
+        if embedding_names is None:
+            embedding_names = self.embeddings.keys()
 
-        for embedding_name, embedding in self.embeddings.items():
-            if embedding_names and embedding_name not in embedding_names:
-                continue
+        embeddings = [
+            self.embeddings[emb_name]
+            for emb_name in embedding_names
+            if emb_name in self.embeddings
+        ]
 
-            if common_keys is None:
-                common_keys = set(embedding.key_to_index)
-            else:
-                common_keys = common_keys.intersection(embedding.key_to_index)
-
-        return set() if common_keys is None else common_keys
+        return get_common_keys(embeddings)
 
     def clear_cache_embedding(self, embedding_name: str) -> None:
         """Clear all cached informations about an embedding
@@ -806,38 +853,38 @@ class EmbeddingsComparator:
 
     @staticmethod
     def sample_embeddings(
-        *embeddings: KeyedVectors, n_samples: int = 30000
+        *embeddings: KeyedVectors, n_samples: int = 30000, strategy: str = "first"
     ) -> List[KeyedVectors]:
         """Create sampled embeddings containing the same keys
 
         Args:
             n_samples (int, optional): number of sample. Defaults to 30000.
+            strategy (str, optional): sample strategy. Defaults to first (which are most
+                frequent terms in fasttext).
 
         Returns:
             List[KeyedVectors]: sampled embeddings
         """
         # Détermination des clés en commun
-        common_words = None
-        for emb in embeddings:
-            if common_words is None:
-                common_words = set(emb.index_to_key)
-            else:
-                common_words = common_words.intersection(emb.index_to_key)
+        common_keys = get_common_keys(embeddings)
 
         # S'il n'y a pas assez de clés en commun, on renvoie les embeddings tels quels
-        if n_samples >= len(common_words):
+        if n_samples >= len(common_keys):
             return embeddings
 
-        # Sinon on crée de nouveaux embeddings contenant des clés en commun tirées au sort
-        random_words = sample(common_words, int(n_samples))
-        sampled_embeddings = []
+        # Sinon on crée de nouveaux embeddings contenant des clés en commun
+        if strategy == "first":
+            selected_keys = common_keys[: int(n_samples)]
+        else:
+            selected_keys = sample(common_keys, int(n_samples))
 
+        sampled_embeddings = []
         for emb in embeddings:
             sampled_emb: KeyedVectors = KeyedVectors(
                 vector_size=emb.vectors.shape[1],
-                count=n_samples,
+                count=int(n_samples),
             )
-            for key in random_words:
+            for key in selected_keys:
                 sampled_emb.add_vector(key, emb.get_vector(key))
 
             sampled_embeddings.append(sampled_emb)

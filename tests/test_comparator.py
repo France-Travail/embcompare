@@ -92,17 +92,19 @@ def test_get_common_keys():
         }
     )
 
-    assert comparator.get_common_keys() == {"c"}
-    assert comparator.get_common_keys(["emb1", "emb2"]) == {"b", "c"}
+    assert comparator.get_common_keys() == ["c"]
+    assert comparator.get_common_keys(["emb1", "emb2"]) == ["b", "c"]
 
 
 def test_add_embedding():
     comparator = embeddings_comparator.EmbeddingsComparator()
 
     # Chargement d'un embedding à partir d'un fichier
-    emb_path = TEST_FOLDER / "embeddings" / "embeddings_competences.json"
+    emb_path = TEST_FOLDER / "embeddings" / "embedding_test_1.json"
     comparator.add_embedding("emb", emb_path)
-    list(comparator["emb"].key_to_index) == ["654321", "654322", "654323"]
+
+    # d is missing because its embedding is null vector
+    assert comparator["emb"].index_to_key == ["a", "b", "c", "e", "f", "g"]
 
 
 def test_compute_neighborhood(test_emb1: dict):

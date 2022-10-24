@@ -20,13 +20,13 @@ st.set_page_config(page_title="Comp2vec - Comparaison embeddings", page_icon="�
 
 ENV_DATA_FOLDER = os.environ.get("EMBSUIVI_DATA", "embsuivi-data")
 DIR_DATA = Path(ENV_DATA_FOLDER)
-DIR_EMBEDDINGS = DIR_DATA / "embeddings"
+DIR_EMBEDDINGS = DIR_DATA / "embeddings" / "lite"
 
 COLORMAP = plt.cm.get_cmap("RdYlBu_r")
 COLOR_BLUE = "#193C40"
 COLOR_ORANGE = "#D96941"
 
-DEFAULT_MAX_EMB_SIZE = 30000
+DEFAULT_MAX_EMB_SIZE = 10000
 
 st.title("Comparaison générale de deux embeddings")
 
@@ -102,7 +102,7 @@ with st.expander("Paramètres avancés"):
     with col1:
         max_emb_size = st.number_input(
             "Taille d'embedding à partir de laquelle effectuer un sous-échantillonage :",
-            min_value=10000,
+            min_value=100,
             max_value=200000,
             step=10000,
             value=DEFAULT_MAX_EMB_SIZE,
@@ -148,7 +148,7 @@ def initiate_comparator(n_neighbors, emb1_name, emb2_name):
 
 
 with st.spinner("Chargement des embeddings..."):
-    comparator = initiate_comparator(n_neighbors, emb1_name, emb2_name)
+    comparator = initiate_comparator(int(n_neighbors), emb1_name, emb2_name)
 
 # ---------------------
 # Affichage des caractéristiques des embeddings
@@ -374,6 +374,7 @@ def afficher_similarites(similarites_elements: dict):
 
 
 NB_DEFAULT = 20
+common_keys = comparator.get_common_keys([emb1_name, emb2_name])
 
 # Affichage des compétences très différents
 st.subheader("Elements dont les voisinages sont les plus différents")
@@ -409,9 +410,20 @@ nb_random = st.slider(
     "Nombre d'éléments à afficher", 5, 100, NB_DEFAULT, key="nb_random"
 )
 
-keys = list(comparator.get_common_keys([emb1_name, emb2_name]))
-keys_random = sorted(sample(keys, nb_random), key=neighborhood_sim.get)
-
+keys_random = sorted(sample(common_keys, nb_random), key=neighborhood_sim.get)
 afficher_similarites(
     comparator.get_neighborhood_comparison(emb1_name, emb2_name, keys_random)
+)
+
+# Affichage des similarités pour les éléments les plus courants
+
+st.subheader("Elements les plus courants")
+
+nb_most_frequent = st.slider(
+    "Nombre d'éléments à afficher", 5, 100, NB_DEFAULT, key="nb_most_frequent"
+)
+
+keys_most_frequent = sorted(common_keys[:nb_most_frequent], key=neighborhood_sim.get)
+afficher_similarites(
+    comparator.get_neighborhood_comparison(emb1_name, emb2_name, keys_most_frequent)
 )
