@@ -1,46 +1,6 @@
-from pathlib import Path
-
 import pytest
 from embsuivi import embeddings_comparator
 from gensim.models.keyedvectors import KeyedVectors
-
-TEST_FOLDER = Path(__file__).parent
-
-
-@pytest.fixture
-def test_emb1():
-    """Embedding de test local"""
-    # g f
-    # c   b
-    # . a e
-    embeddings_test = {
-        "a": [1, 0],
-        "b": [2, 1],
-        "c": [0, 1],
-        "d": [0, 0],  # supprimé car nul
-        "e": [2, 0],
-        "f": [1, 2],
-        "g": [0, 2],
-    }
-    return embeddings_test
-
-
-@pytest.fixture
-def test_emb2():
-    """Embedding de test local"""
-    # g b
-    # c f
-    # . a e
-    embeddings_test = {
-        "a": [1, 0],
-        "b": [1, 2],
-        "c": [0, 1],
-        "d": [0, 0],  # supprimé car nul
-        "e": [2, 0],
-        "f": [1, 1],
-        "g": [0, 2],
-    }
-    return embeddings_test
 
 
 def test_levenshtein():
@@ -96,11 +56,11 @@ def test_get_common_keys():
     assert comparator.get_common_keys(["emb1", "emb2"]) == ["b", "c"]
 
 
-def test_add_embedding():
+def test_add_embedding(embeddings_datadir):
     comparator = embeddings_comparator.EmbeddingsComparator()
 
     # Chargement d'un embedding à partir d'un fichier
-    emb_path = TEST_FOLDER / "embeddings" / "embedding_test_1.json"
+    emb_path = embeddings_datadir / "embedding_test_1.json"
     comparator.add_embedding("emb", emb_path)
 
     # d is missing because its embedding is null vector
@@ -163,6 +123,10 @@ def test_compute_neighborhood_similiraties(test_emb1: dict, test_emb2: dict):
         "f": pytest.approx(1 / 3),
         "g": pytest.approx(1 / 3),
     }
+
+    # verify that similarities are not computed twice but cache is used
+    sims_bis = comparator.compute_neighborhood_similiraties()
+    assert id(sims) == id(sims_bis)
 
 
 def test_clear_cache_embedding(test_emb1: dict, test_emb2: dict):

@@ -26,7 +26,13 @@ streamlit = [
     "altair>=4.0,<5.0",
     "matplotlib>=3.3,<3.4",
 ]
-dev = ["black>=19.0", "isort>=4.3", "pytest>=7.0,<8.0", "pytest-cov>=3.0,<4.0"]
+dev = [
+    "black>=19.0",
+    "isort>=4.3",
+    "pytest>=7.0,<8.0",
+    "pytest-cov>=3.0,<4.0",
+    "pytest-datadir>=1.0,<2.0",
+]
 
 [project.urls]
 homepage = "https://git-scm.pole-emploi.intra/edan1/socle-ia/romeo/romeo_c2v"

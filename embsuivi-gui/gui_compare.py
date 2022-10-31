@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 from embsuivi import EmbeddingsComparator
 from gensim.models.fasttext import load_facebook_vectors
+from gensim.models.keyedvectors import KeyedVectors
 from loguru import logger
 from sklearn.decomposition import PCA
 
@@ -20,7 +21,7 @@ st.set_page_config(page_title="Comp2vec - Comparaison embeddings", page_icon="�
 
 ENV_DATA_FOLDER = os.environ.get("EMBSUIVI_DATA", "embsuivi-data")
 DIR_DATA = Path(ENV_DATA_FOLDER)
-DIR_EMBEDDINGS = DIR_DATA / "embeddings" / "lite"
+DIR_EMBEDDINGS = DIR_DATA / "embeddings"
 
 COLORMAP = plt.cm.get_cmap("RdYlBu_r")
 COLOR_BLUE = "#193C40"
@@ -63,7 +64,21 @@ def create_hist(
     return fig, ax
 
 
-embeddings_dispo = {path.parent.name: path for path in DIR_EMBEDDINGS.glob("*/*.bin")}
+embeddings_dispo = {
+    "1.0.0": DIR_EMBEDDINGS / "lite" / "1.0.0" / "1.0.0_lite.bin",
+    "1.0.1": DIR_EMBEDDINGS / "lite" / "1.0.1" / "1.0.1_lite.bin",
+    "frwiki": (
+        DIR_EMBEDDINGS
+        / "fat"
+        / "frwiki"
+        / "frWiki_no_phrase_no_postag_1000_skip_cut100.bin"
+    ),
+}
+embeddings_dispo_load_method = {
+    "1.0.0": load_facebook_vectors,
+    "1.0.1": load_facebook_vectors,
+    "frwiki": lambda p: KeyedVectors.load_word2vec_format(p, binary=True),
+}
 embeddings_dispo_keys = list(embeddings_dispo)
 
 # ---------------------
@@ -117,13 +132,15 @@ with st.expander("Paramètres avancés"):
 
 @st.cache
 def initiate_comparator(n_neighbors, emb1_name, emb2_name):
+    emb1_load_method = embeddings_dispo_load_method[emb1_name]
     emb1_path = embeddings_dispo[emb1_name]
     logger.info(f"Chargement de l'embedding {emb1_name} ({emb1_path})")
-    emb1 = load_facebook_vectors(emb1_path)
+    emb1 = emb1_load_method(emb1_path)
 
+    emb2_load_method = embeddings_dispo_load_method[emb2_name]
     emb2_path = embeddings_dispo[emb2_name]
     logger.info(f"Chargement de l'embedding {emb2_name} ({emb2_path})")
-    emb2 = load_facebook_vectors(emb2_path)
+    emb2 = emb2_load_method(emb2_path)
 
     logger.info(f"Sampling des embedding")
     emb1, emb2 = EmbeddingsComparator.sample_embeddings(
