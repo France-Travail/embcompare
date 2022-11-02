@@ -42,7 +42,8 @@ class Embedding(KeyedVectors):
 
         self.__neighborhoods: NeighborhoodsDict = None
         self._default_freq = default_freq
-        self.frequencies = np.zeros(shape=count)
+        self._dtype = dtype
+        self.frequencies = np.zeros(shape=count, dtype=dtype)
 
         if default_freq:
             self.frequencies = self.frequencies + default_freq
@@ -92,7 +93,9 @@ class Embedding(KeyedVectors):
         n_new_elements = len(self.index_to_key) - self.frequencies.shape[0]
 
         if n_new_elements > 0:
-            self.frequencies = np.concatenate([self.frequencies, [0] * n_new_elements])
+            self.frequencies = np.concatenate(
+                [self.frequencies, [0] * n_new_elements], dtype=self._dtype
+            )
 
         if frequencies:
             for key, freq in zip(keys, frequencies):
@@ -212,14 +215,6 @@ class Embedding(KeyedVectors):
             ]
 
         return neighbors
-
-    def get_statistics(self):
-        return {
-            "vector_size": self.vector_size,
-            "n_elements": len(self.key_to_index),
-            "default_frequency": self._default_freq,
-            "mean_frequency": np.mean(self.frequencies),
-        }
 
     @classmethod
     def load_from_dict(
@@ -343,70 +338,3 @@ class Embedding(KeyedVectors):
             )
 
         return embedding
-
-
-class EmbeddingStatistics:
-    SCHEMA = (
-        "vector_size",
-        "n_elements",
-        "default_frequency",
-        "mean_frequency",
-        (
-            "neighborhoods",
-            (
-                "n_neighbors",
-                "distance_mean",
-                "distance_mean_first",
-            ),
-        ),
-    )
-
-    def __init__(
-        self, embedding: Embedding, n_neighbors: Union[int, list], include: tuple = None
-    ):
-        self.embedding = embedding
-        self.include = include
-
-        self.n_neighbors = (
-            [n_neighbors] if isinstance(n_neighbors, int) else n_neighbors
-        )
-
-    @property
-    def include(self):
-        return self._include
-
-    @include.setter
-    def include(self, value):
-        if value is None:
-            self._include = self.SCHEMA
-        else:
-            self._include = value
-
-    @property
-    def vector_size(self) -> int:
-        return self.embedding.vector_size
-
-    @property
-    def n_elements(self) -> int:
-        return len(self.embedding.key_to_index)
-
-    @property
-    def default_frequency(self) -> float:
-        return self.embedding._default_freq
-
-    @property
-    def mean_frequency(self) -> float:
-        return np.mean(self.embedding.frequencies)
-
-    @property
-    def neighborhoods(self) -> list:
-        return [
-            self.compute_neighborhoods_statistics(n_neighbors)
-            for n_neighbors in sorted(self.n_neighbors, reverse=True)
-        ]
-
-    def compute_neighborhoods_statistics(self, n_neighbors: int) -> dict:
-        nn_dist, nn_ids = self.embedding.compute_neighborhoods(n_neighbors=n_neighbors)
-        neighborhoods = self.embedding.get_neighbors(n_neighbors=n_neighbors)
-
-        dist_distrib = np.mean(nn_dist[:, 1:], axis=1)

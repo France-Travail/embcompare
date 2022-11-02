@@ -22,7 +22,9 @@ def test_embedding():
     assert np.all(embedding.frequencies == freqs)
 
     embedding = Embedding(vector_size=2, count=3, dtype=np.float64, default_freq=0.123)
-    assert np.sum(embedding.frequencies) == 0.369 # count * default_freq = 3 * 0.123 = 0.369
+    assert (
+        np.sum(embedding.frequencies) == 0.369
+    )  # count * default_freq = 3 * 0.123 = 0.369
 
 
 def test_load_from_dict(test_emb1):
@@ -41,7 +43,8 @@ def test_load_from_dict(test_emb1):
             [2, 0],  # e
             [1, 2],  # f
             [0, 2],  # g
-        ]
+        ],
+        dtype=np.float32,
     )
     assert embedding.index_to_key == ["a", "b", "c", "e", "f", "g"]
     assert np.all(embedding.vectors == test_emb1_vectors)
@@ -70,7 +73,10 @@ def test_load_from_dict(test_emb1):
     )
 
     assert embedding.index_to_key == ["g", "f", "e", "d", "c", "b", "a"]
-    assert np.all(embedding.frequencies == [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1])
+    assert np.all(
+        embedding.frequencies
+        == np.array([0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1], dtype=np.float32)
+    )
     assert np.all(
         embedding.vectors
         == [[1, 0], [2, 1], [0, 1], [0, 0], [2, 0], [1, 2], [0, 2]][::-1]
@@ -163,13 +169,15 @@ def test_add_vector():
     embedding.add_vector("b", [0, 2])
 
     assert np.all(embedding.vectors == [[0, 1], [0, 2]])
-    assert np.all(embedding.frequencies == [0.1, 0.0])
+    assert np.all(embedding.frequencies == np.array([0.1, 0.0], dtype=np.float32))
 
     embedding.add_vector("c", [0, 0])
     embedding.add_vector("d", [0, 3], 0.99)
 
     assert np.all(embedding.vectors == [[0, 1], [0, 2], [0, 0], [0, 3]])
-    assert np.all(embedding.frequencies == [0.1, 0.0, 0.0, 0.99])
+    assert np.all(
+        embedding.frequencies == np.array([0.1, 0.0, 0.0, 0.99], dtype=np.float32)
+    )
 
 
 def test_add_vectors():
@@ -177,18 +185,18 @@ def test_add_vectors():
 
     embedding.add_vectors(["a", "b"], [[0, 1], [0, 2]], [0.1, 0.2])
     assert np.all(embedding.vectors == [[0, 1], [0, 2]])
-    assert np.all(embedding.frequencies == [0.1, 0.2])
+    assert np.all(embedding.frequencies == np.array([0.1, 0.2], dtype=np.float32))
 
     # Add the same vectors, without replace the vectors are note updated
     embedding.add_vectors(["a", "b", "c"], [[0, 0], [0, 0], [3, 3]], [0.0, None, 0.3])
     assert np.all(embedding.vectors == [[0, 1], [0, 2], [3, 3]])
-    assert np.all(embedding.frequencies == [0.0, 0.2, 0.3])
+    assert np.all(embedding.frequencies == np.array([0.0, 0.2, 0.3], dtype=np.float32))
 
     # Add the same vectors with replace=True
     # see. https://radimrehurek.com/gensim/models/keyedvectors.html#gensim.models.keyedvectors.KeyedVectors.add_vectors
     embedding.add_vectors(["a", "b"], [[0, 0], [0, 0]], replace=True)
     assert np.all(embedding.vectors == [[0, 0], [0, 0], [3, 3]])
-    assert np.all(embedding.frequencies == [0.0, 0.2, 0.3])
+    assert np.all(embedding.frequencies == np.array([0.0, 0.2, 0.3], dtype=np.float32))
 
 
 def test_get_frequency():
@@ -196,8 +204,8 @@ def test_get_frequency():
         {"a": [0, 1], "b": [0, 2]}, frequencies={"a": 0.2, "b": 0.1}
     )
 
-    assert embedding.get_frequency("a") == 0.2
-    assert embedding.get_frequency(1) == 0.1
+    assert embedding.get_frequency("a") == pytest.approx(0.2)
+    assert embedding.get_frequency(1) == pytest.approx(0.1)
 
 
 def test_ordered():
