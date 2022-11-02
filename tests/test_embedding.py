@@ -21,6 +21,9 @@ def test_embedding():
     assert np.all(embedding.vectors == vectors)
     assert np.all(embedding.frequencies == freqs)
 
+    embedding = Embedding(vector_size=2, count=3, dtype=np.float64, default_freq=0.123)
+    assert np.sum(embedding.frequencies) == 0.369 # count * default_freq = 3 * 0.123 = 0.369
+
 
 def test_load_from_dict(test_emb1):
 

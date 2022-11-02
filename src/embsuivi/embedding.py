@@ -17,16 +17,24 @@ DEFAULT_N_NEIGHBORS = 25
 
 
 class Embedding(KeyedVectors):
-    def __init__(self, vector_size: int, count: int = 0, dtype=np.float32, **kwargs):
+    def __init__(
+        self,
+        vector_size: int,
+        count: int = 0,
+        dtype=np.float32,
+        default_freq: float = 0,
+        **kwargs,
+    ):
         """Initialize an Embedding object
 
         Args:
             vector_size (int): Intended number of dimensions for all contained vectors.
             count (int, optional): If provided, vectors wil be pre-allocated for at least this
                 many vectors (Otherwise they can be added later). Defaults to 0.
-            dtype (_type_, optional): Vector dimensions will default to np.float32
+            dtype (type, optional): Vector dimensions will default to np.float32
                 (AKA REAL in some Gensim code) unless another type is provided here.
                 Defaults to np.float32.
+            default_freq (float, optional): default frequency for elements. Defaults to 0.0.
         """
         super(Embedding, self).__init__(
             vector_size=vector_size, count=count, dtype=dtype, **kwargs
@@ -34,6 +42,9 @@ class Embedding(KeyedVectors):
 
         self.__neighborhoods: NeighborhoodsDict = None
         self.frequencies = np.zeros(shape=count)
+
+        if default_freq:
+            self.frequencies = self.frequencies + default_freq
 
     def add_vector(self, key: str, vector: np.ndarray, frequency: float = None) -> int:
         """Add one new vector at the given key, into existing slot if available.
