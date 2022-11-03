@@ -7,7 +7,6 @@ from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
-from loguru import logger
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -230,9 +229,6 @@ class EmbeddingsComparator:
 
         elif isinstance(embedding, dict):
             if len(embedding) == 0:
-                logger.warning(
-                    f"L'embedding {embedding_name} ne contient aucune clé. Skipped."
-                )
                 return None
 
             if clean:
@@ -241,11 +237,6 @@ class EmbeddingsComparator:
                     for key, vec in embedding.items()
                     if not all(v == 0 for v in vec)
                 }
-
-            if len(embedding) == 0:
-                logger.warning(
-                    f"L'embedding {embedding_name} ne contient aucun embedding non null. Skipped."
-                )
 
             self.embeddings[embedding_name] = self.dict_to_keyedvectors(embedding)
 

@@ -88,11 +88,11 @@ class EmbeddingReport:
         """Mean distance to first neighbor"""
         return np.mean(self.nearest_neighbors_distances[:, 0])
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """string representation of the object"""
         return (
             f"{self.__class__}(n_neighbors={self.n_neighbors}, "
-            f"vector_size={self.vector_size}, n_elements={self.n_elements})"
+            f"include=[{''.join(self.include)}])"
         )
 
     def __getitem__(self, feature: str) -> Any:

@@ -10,7 +10,7 @@ def emb_test(test_emb1: dict, test_emb1_freqs: dict):
     return Embedding.load_from_dict(test_emb1, frequencies=test_emb1_freqs)
 
 
-def test_repr(emb_test: Embedding):
+def test_str(emb_test: Embedding):
     report = EmbeddingReport(emb_test, n_neighbors=2)
     assert "n_neighbors=2" in str(report)
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from pathlib import Path
@@ -11,9 +12,9 @@ import streamlit as st
 from embsuivi import EmbeddingsComparator
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors
-from loguru import logger
 from sklearn.decomposition import PCA
 
+logger = logging.getLogger(__name__)
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 
