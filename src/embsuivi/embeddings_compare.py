@@ -194,6 +194,11 @@ class EmbeddingComparison:
 
     @cached_property
     def neighborhoods_ordered_smiliarities(self) -> Dict[str, float]:
+        """Return ordered similarities between common elements
+
+        Returns:
+            Dict[str, float]: a {element: similarity} python dict
+        """
         emb1_neighborhoods, emb2_neighborhoods = self.neighborhoods
 
         similarities = {}

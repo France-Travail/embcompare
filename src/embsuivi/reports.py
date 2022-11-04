@@ -1,6 +1,6 @@
 import json
 from functools import cached_property
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -13,6 +13,11 @@ class Report:
     FEATURES = ()
 
     def __init__(self, include_features: tuple = None):
+        """Initialization of a report object
+
+        Args:
+            include_features (tuple, optional): features to include in the report. Defaults to None.
+        """
         self.include_features = include_features
 
     @property
@@ -161,6 +166,13 @@ class EmbeddingComparisonReport(Report):
     )
 
     def __init__(self, comparison: EmbeddingComparison, include_features: tuple = None):
+        """Initialize a EmbeddingComparisonReport from a EmbeddingComparison instance
+
+        Args:
+            comparison (EmbeddingComparison): EmbeddingComparison instance
+            include_features (tuple, optional): features to include. By setting it to None, all features
+                containing in FEATURES are included. Defaults to None.
+        """
         self.comparison = comparison
 
         super(EmbeddingComparisonReport, self).__init__(
@@ -169,10 +181,12 @@ class EmbeddingComparisonReport(Report):
 
     @property
     def n_neighbors(self):
+        """Number of neighbors on which is based the comparison"""
         return self.comparison.n_neighbors
 
     @cached_property
-    def embeddings(self) -> list:
+    def embeddings(self) -> List[dict]:
+        """return a list containing a dict report of both embeddings"""
         first_emb_id, second_emb_id = self.comparison.embeddings_ids
         first_emb, second_emb = self.comparison.embeddings
 
@@ -185,25 +199,31 @@ class EmbeddingComparisonReport(Report):
         return [first_emb_report, second_emb_report]
 
     @property
-    def neighborhoods_similarities(self):
+    def neighborhoods_similarities(self) -> Dict[str, float]:
+        """neighborhoods similarities of the two embeddings"""
         return self.comparison.neighborhoods_smiliarities
 
     @cached_property
-    def neighborhoods_similarities_values(self):
+    def neighborhoods_similarities_values(self) -> np.ndarray:
+        """neighborhoods similarities values in an numpy array"""
         return np.array(list(self.neighborhoods_similarities.values()))
 
     @property
-    def neighborhoods_similarities_median(self):
+    def neighborhoods_similarities_median(self) -> float:
+        """median neighborhoods similaritiy"""
         return np.median(self.neighborhoods_similarities_values)
 
     @property
-    def neighborhoods_ordered_smiliarities(self):
+    def neighborhoods_ordered_smiliarities(self) -> Dict[str, float]:
+        """neighborhoods ordered similarities of the two embeddings"""
         return self.comparison.neighborhoods_ordered_smiliarities
 
     @cached_property
-    def neighborhoods_ordered_similarities_values(self):
+    def neighborhoods_ordered_similarities_values(self) -> np.ndarray:
+        """neighborhoods ordered similarities values in an numpy array"""
         return np.array(list(self.neighborhoods_ordered_smiliarities.values()))
 
     @property
-    def neighborhoods_ordered_similarities_median(self):
+    def neighborhoods_ordered_similarities_median(self) -> float:
+        """median neighborhoods ordered similaritiy"""
         return np.median(self.neighborhoods_ordered_similarities_values)
