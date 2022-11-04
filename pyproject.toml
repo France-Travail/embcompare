@@ -50,3 +50,6 @@ source = ["src"]
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+embsuivi-compare = "embsuivi.gui.cli:main"
