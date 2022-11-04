@@ -67,7 +67,7 @@ def test_load_embedding(embedding_A: Embedding):
     emb = EmbeddingComparison._load_embedding(embedding_A)
 
     # Exact same object since is embedding_A is a Embedding instance
-    assert id(emb) == id(embedding_A)
+    assert emb == embedding_A
 
     keyedvectors = KeyedVectors(vector_size=2, count=8)
     keyedvectors.add_vector("a", [0, 1])
@@ -87,8 +87,8 @@ def test_embedding_comparison(
     emb_1, emb_2 = comparison_AB.embeddings
 
     # Exact same object since both embedding are Embedding instances
-    assert id(emb_1) == id(embedding_A)
-    assert id(emb_2) == id(embedding_B)
+    assert emb_1 == embedding_A
+    assert emb_2 == embedding_B
 
     emb_1_id, emb_2_id = comparison_AB.embeddings_ids
     assert emb_1_id == "A"
@@ -98,11 +98,11 @@ def test_embedding_comparison(
 def test_get_item(
     comparison_AB: EmbeddingComparison, embedding_A: Embedding, embedding_B: Embedding
 ):
-    assert id(comparison_AB[0]) == id(comparison_AB["A"])
-    assert id(comparison_AB["A"]) == id(embedding_A)
+    assert comparison_AB[0] == comparison_AB["A"]
+    assert comparison_AB["A"] == embedding_A
 
-    assert id(comparison_AB[1]) == id(comparison_AB["B"])
-    assert id(comparison_AB["B"]) == id(embedding_B)
+    assert comparison_AB[1] == comparison_AB["B"]
+    assert comparison_AB["B"] == embedding_B
 
     with pytest.raises(KeyError):
         comparison_AB["does not exists"]
@@ -146,3 +146,36 @@ def test_neighborhoods_smiliarities(comparison_AB: EmbeddingComparison):
 
 def test_mean_neighborhoods_smiliarity(comparison_AB: EmbeddingComparison):
     assert comparison_AB.mean_neighborhoods_smiliarity == pytest.approx((2 + 4 / 3) / 8)
+
+
+def test_neighborhoods_ordered_smiliarities(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.neighborhoods_ordered_smiliarities == {
+        "d": 1.0,
+        "g": 1.0,
+        "a": 0.5,
+        "c": 0.0,
+        "e": 0.5,
+        "f": 0.0,
+        "b": 0.0,
+        "h": 0.0,
+    }
+
+
+def test_mean_neighborhoods_ordered_smiliarity(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.mean_neighborhoods_ordered_smiliarity == pytest.approx(3 / 8)
+
+
+def test_get_most_similar(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.get_most_similar(3) == [
+        ("d", 1.0),
+        ("g", 1.0),
+        ("a", pytest.approx(1 / 3)),
+    ]
+
+
+def test_get_least_similar(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.get_least_similar(3) == [
+        ("f", pytest.approx(1 / 3)),
+        ("b", 0),
+        ("h", 0),
+    ]

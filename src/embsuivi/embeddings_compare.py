@@ -1,15 +1,26 @@
+import collections
 from functools import cached_property
-from typing import Any, Dict, Tuple, Union
+from itertools import islice
+from typing import Any, Dict, Hashable, Tuple, Union
 
-import editdistance
 import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
 
 from .embedding import Embedding
+from .sequences_similarity import damerau_levenshtein_similarity as ordered_sim
 
 
 class EmbeddingComparison:
     def __init__(self, embeddings: Dict[Any, KeyedVectors], n_neighbors: int = 25):
+        """Comparison of two embeddings
+
+        Embeddings must be provided in a dict like :
+        {"first_emb_name": first_emb, "second_emb_name": second_emb}
+
+        Args:
+            embeddings (Dict[Any, KeyedVectors]): python dict containing both embeddings.
+            n_neighbors (int, optional): Number of neighbors for comparison. Defaults to 25.
+        """
         self.n_neighbors = n_neighbors
 
         assert (
@@ -22,15 +33,28 @@ class EmbeddingComparison:
         )
 
     @property
-    def embeddings(self):
+    def embeddings(self) -> Tuple[Embedding, Embedding]:
+        """Tuple containing both embeddings"""
         return self.__embeddings
 
     @property
-    def embeddings_ids(self):
+    def embeddings_ids(self) -> Tuple[Hashable, Hashable]:
+        """Tuple containing both embedding names"""
         return self.__embeddings_ids
 
     @staticmethod
-    def _load_embedding(embedding):
+    def _load_embedding(embedding: KeyedVectors) -> Embedding:
+        """Convert a KeyedVectors to an Embedding object if necessary
+
+        Args:
+            embedding (KeyedVectors): embedding as a KeyedVectors object
+
+        Raises:
+            TypeError: raise an error if the provided embedding is not a KeyedVectors object
+
+        Returns:
+            Embedding: embedding as a Embedding object
+        """
         if isinstance(embedding, Embedding):
             return embedding
         elif isinstance(embedding, KeyedVectors):
@@ -38,7 +62,23 @@ class EmbeddingComparison:
         else:
             raise TypeError("Embeddings should be of type Embedding or KeyedVectors")
 
-    def __getitem__(self, identifier):
+    def __getitem__(self, identifier: Union[str, int]) -> Embedding:
+        """Allows referencing both embedding by its name or index
+
+        >>> comp = EmbeddingComparison({"A": emb_A, "B": emb_B})
+        >>> assert comp["A"] == emb_A
+        True
+
+        Args:
+            identifier (Union[str, int]): embedding identifier
+
+        Raises:
+            KeyError: raise an error if the identifier is neither an embedding
+                name nor 0 or 1.
+
+        Returns:
+            Embedding: the corresponding embedding
+        """
         if identifier == self.embeddings_ids[0]:
             return self.embeddings[0]
 
@@ -54,7 +94,16 @@ class EmbeddingComparison:
             }
             raise KeyError(f"identifier should be one of : {', '.join(ids)}")
 
-    def is_frequencies_set(self):
+    def is_frequencies_set(self) -> bool:
+        """Verify if element frequencies are set for both embedding
+
+        The verification process consist in verifing if for both embedding
+        there is at least one frequency that is not equal to the default
+        frequency
+
+        Returns:
+            bool: True if both embeddings contain frequencies, False otherwise
+        """
         first_emb, second_emb = self.embeddings
 
         return np.any(first_emb.frequencies != first_emb._default_freq) and np.any(
@@ -62,7 +111,16 @@ class EmbeddingComparison:
         )
 
     @cached_property
-    def common_keys(self):
+    def common_keys(self) -> list:
+        """Returns a list of common elements between the two embeddings
+
+        The elements are sorted according to their mean frequencies in both
+        embeddings. If frequencies are not set for both embedding, we take
+        the mean position in the embeddings of the elements as their frequency
+
+        Returns:
+            list: A list of common elements between the two compared embeddings
+        """
         common_keys = {}
 
         first_emb, second_emb = self.embeddings
@@ -83,7 +141,12 @@ class EmbeddingComparison:
         return sorted(common_keys, key=common_keys.get, reverse=True)
 
     @cached_property
-    def neighborhoods(self):
+    def neighborhoods(self) -> Tuple[dict, dict]:
+        """Returns both embedding neighborhoods for common keys in a tuple
+
+        Returns:
+            Tuple[dict, dict]: a tuple containing both embedding neighborhoods
+        """
         first_emb, second_emb = self.embeddings
 
         first_neighborhoods = first_emb.get_neighbors(
@@ -98,7 +161,12 @@ class EmbeddingComparison:
         return (first_neighborhoods, second_neighborhoods)
 
     @cached_property
-    def neighborhoods_smiliarities(self):
+    def neighborhoods_smiliarities(self) -> Dict[str, float]:
+        """Return similarities between common elements
+
+        Returns:
+            Dict[str, float]: a {element: similarity} python dict
+        """
         emb1_neighborhoods, emb2_neighborhoods = self.neighborhoods
 
         similarities = {}
@@ -120,11 +188,12 @@ class EmbeddingComparison:
         }
 
     @cached_property
-    def mean_neighborhoods_smiliarity(self):
+    def mean_neighborhoods_smiliarity(self) -> float:
+        """Mean neighborhoods similarity"""
         return np.mean(list(self.neighborhoods_smiliarities.values()))
 
     @cached_property
-    def neighborhoods_ordered_smiliarities(self):
+    def neighborhoods_ordered_smiliarities(self) -> Dict[str, float]:
         emb1_neighborhoods, emb2_neighborhoods = self.neighborhoods
 
         similarities = {}
@@ -133,10 +202,7 @@ class EmbeddingComparison:
             key_neighbors_1 = [k for k, _ in emb1_neighborhoods[key]]
             key_neighbors_2 = [k for k, _ in emb2_neighborhoods[key]]
 
-            similarities[key] = (
-                1
-                - editdistance.eval(key_neighbors_1, key_neighbors_2) / self.n_neighbors
-            )
+            similarities[key] = ordered_sim(key_neighbors_1, key_neighbors_2)
 
         # Sort by similarity
         return {
@@ -145,3 +211,40 @@ class EmbeddingComparison:
                 similarities.items(), key=lambda item: item[1], reverse=True
             )
         }
+
+    @cached_property
+    def mean_neighborhoods_ordered_smiliarity(self) -> float:
+        """Mean ordered neighborhoods similarity"""
+        return np.mean(list(self.neighborhoods_ordered_smiliarities.values()))
+
+    def get_most_similar(self, n_elements: int) -> list:
+        """Get most similar elements from self.neighborhoods_smiliarities
+
+        see itertools recipes for implementation :
+        https://docs.python.org/3/library/itertools.html#recipes
+
+        Args:
+            n_elements (int): number of elements to return
+
+        Returns:
+            list: list of tuples (element, element_neighbors)
+        """
+        return list(islice(self.neighborhoods_smiliarities.items(), n_elements))
+
+    def get_least_similar(self, n_elements: int):
+        """Get least similar elements from self.neighborhoods_smiliarities
+
+        see itertools recipes for implementation :
+        https://docs.python.org/3/library/itertools.html#recipes
+
+        Args:
+            n_elements (int): number of elements to return
+
+        Returns:
+            list: list of tuples (element, element_neighbors)
+        """
+        return list(
+            collections.deque(
+                self.neighborhoods_smiliarities.items(), maxlen=n_elements
+            )
+        )
