@@ -1,27 +1,26 @@
-import glob
-import os
-from argparse import Namespace
-from pathlib import Path
-from typing import List
-
 import streamlit as st
 
-
-def find_files(*glob_patterns) -> List[Path]:
-    return [
-        Path(file)
-        for glob_pattern in glob_patterns
-        for file in glob.glob(glob_pattern, recursive=True)
-        if os.path.isfile(file)
-    ]
+from .load_utils import EMBEDDING_FORMATS
 
 
-def load_embeddings(arguments: Namespace):
-    embeddings_path = find_files(*arguments.embeddings)
-    embeddings_names = arguments.names
-    embeddings_format = arguments.formats
+@st.cache(suppress_st_warning=True)
+def load_embedding(
+    embedding_path: str,
+    embedding_format: str,
+    frequencies_path: str = None,
+    frequencies_format: str = None,
+):
+    try:
+        loading_function = EMBEDDING_FORMATS[embedding_format.lower()]
 
-    if embeddings_names is None or len(embeddings_names) != len(embeddings_path):
-        embeddings_names = [path.stem for path in embeddings_path]
-
-    return {name: emb for name, emb in zip(embeddings_names, embeddings_path)}
+        return loading_function(
+            embedding_path,
+            frequencies_path=frequencies_path,
+            frequencies_format=frequencies_format,
+        )
+    except KeyError:
+        st.error(
+            f"embedding format shloud be one of `{', '.join(EMBEDDING_FORMATS)}` "
+            f"but is `{embedding_format}`\n\n"
+            f"Could not load {embedding_path}"
+        )

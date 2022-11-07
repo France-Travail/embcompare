@@ -9,14 +9,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from embsuivi import EmbeddingsComparator
+from embsuivi.embeddings_comparator import EmbeddingsComparator
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors
 from sklearn.decomposition import PCA
 
 logger = logging.getLogger(__name__)
-logger.remove()
-logger.add(sys.stderr, level="INFO")
 
 st.set_page_config(page_title="Comp2vec - Comparaison embeddings", page_icon="👩‍🔧")
 
@@ -159,8 +157,6 @@ def initiate_comparator(n_neighbors, emb1_name, emb2_name):
 
     logger.info(f"Calcul des ordres")
     comparator.compute_neighborhood_order_similiraties()
-
-    logger.success("Chargement terminé")
 
     return comparator
 
