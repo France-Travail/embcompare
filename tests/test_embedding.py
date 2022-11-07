@@ -208,6 +208,25 @@ def test_get_frequency():
     assert embedding.get_frequency(1) == pytest.approx(0.1)
 
 
+def test_set_frequencies():
+    embedding = Embedding.load_from_dict({"a": [0, 1], "b": [0, 2], "c": [0, 3]})
+    frequencies = [0.1, 0.2, 0.3]
+
+    # Set frequencies with a list
+    embedding.set_frequencies(frequencies)
+    assert np.all(np.isclose(embedding.frequencies, frequencies))
+
+    # Set frequencies an array
+    embedding.set_frequencies(np.array(frequencies))
+    assert np.all(np.isclose(embedding.frequencies, frequencies))
+
+    # Set frequencies with a dict
+    dict_frequencies = {"c": 0.1, "b": 0.2, "a": 0.3, "z": "not used"}
+
+    embedding.set_frequencies(dict_frequencies)
+    assert np.all(np.isclose(embedding.frequencies, frequencies[::-1]))
+
+
 def test_ordered():
     embedding = Embedding(vector_size=2, count=4)
 

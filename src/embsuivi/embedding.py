@@ -117,6 +117,23 @@ class Embedding(KeyedVectors):
 
         return self.frequencies[key]
 
+    def set_frequencies(self, frequencies: Union[list, np.ndarray, dict]):
+        """Set frequencies from a dict or a array-like
+
+        Args:
+            frequencies (Union[list, np.ndarray, dict]): frequencies in a dict or
+                a array-like
+        """
+        if isinstance(frequencies, dict):
+            for key, freq in frequencies.items():
+                if key in self.key_to_index:
+                    ind = self.key_to_index[key]
+                    self.frequencies[ind] = freq
+
+        else:
+            for ind, freq in enumerate(frequencies):
+                self.frequencies[ind] = freq
+
     def ordered(self) -> TEmbedding:
         """Return an Embedding object ordered by element frequencies
 

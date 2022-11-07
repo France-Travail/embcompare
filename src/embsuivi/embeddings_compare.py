@@ -1,13 +1,16 @@
 import collections
 from functools import cached_property
 from itertools import islice
-from typing import Any, Dict, Hashable, Tuple, Union
+from random import sample
+from typing import Any, Dict, Hashable, Tuple, TypeVar, Union
 
 import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
 
 from .embedding import Embedding
 from .sequences_similarity import damerau_levenshtein_similarity as ordered_sim
+
+TEmbeddingComparison = TypeVar("TEmbeddingComparison", bound="EmbeddingComparison")
 
 
 class EmbeddingComparison:
@@ -253,3 +256,46 @@ class EmbeddingComparison:
                 self.neighborhoods_smiliarities.items(), maxlen=n_elements
             )
         )
+
+    def sampled_comparison(
+        self, n_samples: int = 10000, strategy: str = "first"
+    ) -> TEmbeddingComparison:
+        """Sample both embeddings to reduce their size and return a comparison between
+        the sampled embeddings
+
+        Args:
+            n_samples (int, optional): number of sample. Defaults to 10000.
+            strategy (str, optional): sample strategy. Defaults to first (which are most
+                frequent terms in fasttext).
+
+        Returns:
+            TEmbeddingComparison: A EmbeddingComparison object based on sampled embeddings
+        """
+        # If there is less elements in current comparison than the wanted number of samples
+        # we return the comparison as it is
+        if n_samples >= len(self.common_keys):
+            return self
+
+        # Selection of keys to keep according to the sampling strategy
+        if strategy == "first":
+            selected_keys = self.common_keys[: int(n_samples)]
+        elif strategy == "random":
+            selected_keys = sample(self.common_keys, int(n_samples))
+        else:
+            raise ValueError(
+                f"strategy shloud be 'first' or 'random'. Received : {strategy}"
+            )
+
+        sampled_embeddings = {}
+
+        for emb_id, emb in zip(self.embeddings_ids, self.embeddings):
+            sampled_emb: Embedding = Embedding(
+                vector_size=emb.vectors.shape[1],
+                count=int(n_samples),
+            )
+            for key in selected_keys:
+                sampled_emb.add_vector(key, emb.get_vector(key), emb.get_frequency(key))
+
+            sampled_embeddings[emb_id] = emb
+
+        return self.__class__(sampled_embeddings, n_neighbors=self.n_neighbors)
