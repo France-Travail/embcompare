@@ -6,19 +6,17 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from embsuivi import EmbeddingComparison, EmbeddingReport
+from embsuivi import EmbeddingComparison, EmbeddingComparisonReport, EmbeddingReport
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
 from embsuivi.gui.helpers import load_embedding
-from omegaconf import OmegaConf
 from sklearn.decomposition import PCA
+
+AdvancedParameters = namedtuple("AdvancedParameters", ["n_neighbors", "max_emb_size"])
+EMB_COLORS = ("#04BF9D", "#F27457")
 
 st.set_page_config(page_title="Embedding comparison", page_icon="📊")
 
 config = load_configs(*sys.argv[1:])
-
-AdvancedParameters = namedtuple("AdvancedParameters", ["n_neighbors", "max_emb_size"])
-
-EMB_COLORS = ("#04BF9D", "#F27457")
 
 
 def main():
@@ -27,11 +25,18 @@ def main():
     advanced_parameters = get_advanced_parameters()
 
     # Tabs
-    (tab_infos, tab_stats) = st.tabs(["Infos", "Statistics"])
+    (tab_infos, tab_stats, tab_spaces, tab_neighbors) = st.tabs(
+        ["Infos", "Statistics", "Vector spaces", "Neighborhoods similarities"]
+    )
 
     # Display informations about embeddings
     with tab_infos:
         embedding_infos(emb1_id, emb2_id)
+
+    # If same embedding are selected, stop here
+    if emb1_id == emb2_id:
+        st.warning("Selected embeddings are indentical", icon="⚠")
+        st.stop()
 
     comparison = create_comparison(
         emb1_id,
@@ -43,6 +48,13 @@ def main():
     # Display statistics
     with tab_stats:
         statistics_comparison(comparison)
+
+    # Display spaces
+    with tab_spaces:
+        compare_spaces(comparison)
+
+    with tab_neighbors:
+        display_neighborhood_similarities(comparison)
 
 
 def embedding_selection() -> Tuple[str, str]:
@@ -103,10 +115,6 @@ def get_advanced_parameters() -> AdvancedParameters:
 def embedding_infos(emb1_id: str, emb2_id: str):
     emb1_infos = config[CONFIG_EMBEDDINGS][emb1_id]
     emb2_infos = config[CONFIG_EMBEDDINGS][emb2_id]
-
-    # Warning in case both embeddings are the same
-    if emb1_id == emb2_id:
-        st.warning("Selected embeddings are indentical")
 
     for emb_info, col in zip((emb1_infos, emb2_infos), st.columns(2)):
         with col:
@@ -169,12 +177,18 @@ def statistics_comparison(comparison: EmbeddingComparison):
     for emb_df, col, color in zip((emb1_df, emb2_df), st.columns(2), EMB_COLORS):
         with col:
             st.altair_chart(
-                altair_histogram(
-                    emb_df,
-                    "mean_dist",
-                    extent=[min_mean_dist, max_mean_dist],
-                    color=color,
-                )
+                alt.Chart(emb_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X(
+                        "mean_dist",
+                        bin=alt.Bin(extent=[min_mean_dist, max_mean_dist], maxbins=20),
+                        title=None,
+                    ),
+                    y=alt.Y("count()", axis=None),
+                    color=alt.value(color),
+                ),
+                use_container_width=True,
             )
             st.metric("median", f"{emb_df['mean_dist'].median():.1e}")
 
@@ -191,12 +205,18 @@ def statistics_comparison(comparison: EmbeddingComparison):
     for emb_df, col, color in zip((emb1_df, emb2_df), st.columns(2), EMB_COLORS):
         with col:
             st.altair_chart(
-                altair_histogram(
-                    emb_df,
-                    "mean_first_dist",
-                    extent=[min_mean_dist, max_mean_dist],
-                    color=color,
-                )
+                alt.Chart(emb_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X(
+                        "mean_first_dist",
+                        bin=alt.Bin(extent=[min_mean_dist, max_mean_dist], maxbins=20),
+                        title=None,
+                    ),
+                    y=alt.Y("count()", axis=None),
+                    color=alt.value(color),
+                ),
+                use_container_width=True,
             )
             st.metric("median", f"{emb_df['mean_first_dist'].median():.1e}")
 
@@ -205,7 +225,7 @@ def altair_histogram(
     df: pd.DataFrame,
     col: str,
     extent: list = None,
-    color: str = "lightblue",
+    color: str = None,
     maxbins: int = 20,
 ) -> alt.Chart:
     if extent is not None:
@@ -221,6 +241,96 @@ def altair_histogram(
             y=alt.Y("count()", axis=None),
             color=alt.value(color),
         )
+    )
+
+
+def compare_spaces(comparison: EmbeddingComparison):
+    report = EmbeddingComparisonReport(comparison)
+
+    neighborhood_sim_values = list(report.neighborhoods_similarities.values())
+
+    # Principal Component Analysis visualization
+    st.subheader("Principal Component Analysis visualization")
+    for emb, col in zip(comparison.embeddings, st.columns(2)):
+
+        emb_pca = PCA(n_components=2).fit_transform(emb.vectors)
+        inds = [emb.key_to_index[k] for k in report.neighborhoods_similarities]
+
+        df_pca = pd.DataFrame(
+            {
+                "x": emb_pca[inds, 0],
+                "y": emb_pca[inds, 1],
+                "sim": neighborhood_sim_values,
+                "cle": list(report.neighborhoods_similarities.keys()),
+            }
+        )
+
+        chart = (
+            alt.Chart(df_pca)
+            .mark_circle(size=60)
+            .encode(
+                x=alt.X("x", axis=None),
+                y=alt.Y("y", axis=None),
+                tooltip=["cle", "sim"],
+                color=alt.Color(
+                    "sim",
+                    scale=alt.Scale(domain=[0, 1], scheme="redyellowblue"),
+                    legend=None,
+                ),
+            )
+            .configure_axis(grid=False)
+            .configure_mark(opacity=0.33)
+            .configure_view(strokeWidth=0)
+            .interactive()
+        )
+
+        with col:
+            st.altair_chart(chart, use_container_width=True)
+
+
+def display_neighborhood_similarities(comparison: EmbeddingComparison):
+    report = EmbeddingComparisonReport(comparison)
+
+    # Neighborhoods similarities
+    neighborhood_sim_values = list(report.neighborhoods_similarities.values())
+    df_sim = pd.DataFrame({"similarity": neighborhood_sim_values})
+
+    st.subheader("Neighborhoods similarities")
+    st.altair_chart(
+        alt.Chart(df_sim)
+        .mark_bar()
+        .encode(
+            x=alt.X("similarity", bin=alt.Bin(extent=[0, 1], maxbins=10), title=None),
+            y=alt.Y("count()", axis=None),
+            color=alt.Color(
+                "similarity", scale=alt.Scale(scheme="redyellowblue", domain=[0, 1])
+            ),
+        ),
+        use_container_width=True,
+    )
+
+    st.metric("Median similarity", f"{np.median(neighborhood_sim_values):.1%}")
+
+    # Neighborhoods ordered similarity
+    neighborhood_o_sim_values = list(report.neighborhoods_ordered_smiliarities.values())
+    df_sim = pd.DataFrame({"similarity": neighborhood_o_sim_values})
+
+    st.subheader("Neighborhoods ordered similarities")
+    st.altair_chart(
+        alt.Chart(df_sim)
+        .mark_bar()
+        .encode(
+            x=alt.X("similarity", bin=alt.Bin(extent=[0, 1], maxbins=10), title=None),
+            y=alt.Y("count()", axis=None),
+            color=alt.Color(
+                "similarity", scale=alt.Scale(scheme="redyellowblue", domain=[0, 1])
+            ),
+        ),
+        use_container_width=True,
+    )
+
+    st.metric(
+        "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
     )
 
 
