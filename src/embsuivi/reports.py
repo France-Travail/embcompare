@@ -201,7 +201,7 @@ class EmbeddingComparisonReport(Report):
     @property
     def neighborhoods_similarities(self) -> Dict[str, float]:
         """neighborhoods similarities of the two embeddings"""
-        return self.comparison.neighborhoods_smiliarities
+        return self.comparison.neighborhoods_similarities
 
     @cached_property
     def neighborhoods_similarities_values(self) -> np.ndarray:
@@ -214,14 +214,14 @@ class EmbeddingComparisonReport(Report):
         return np.median(self.neighborhoods_similarities_values)
 
     @property
-    def neighborhoods_ordered_smiliarities(self) -> Dict[str, float]:
+    def neighborhoods_ordered_similarities(self) -> Dict[str, float]:
         """neighborhoods ordered similarities of the two embeddings"""
-        return self.comparison.neighborhoods_ordered_smiliarities
+        return self.comparison.neighborhoods_ordered_similarities
 
     @cached_property
     def neighborhoods_ordered_similarities_values(self) -> np.ndarray:
         """neighborhoods ordered similarities values in an numpy array"""
-        return np.array(list(self.neighborhoods_ordered_smiliarities.values()))
+        return np.array(list(self.neighborhoods_ordered_similarities.values()))
 
     @property
     def neighborhoods_ordered_similarities_median(self) -> float:

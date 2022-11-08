@@ -164,7 +164,7 @@ class EmbeddingComparison:
         return (first_neighborhoods, second_neighborhoods)
 
     @cached_property
-    def neighborhoods_smiliarities(self) -> Dict[str, float]:
+    def neighborhoods_similarities(self) -> Dict[str, float]:
         """Return similarities between common elements
 
         Returns:
@@ -191,12 +191,17 @@ class EmbeddingComparison:
         }
 
     @cached_property
-    def mean_neighborhoods_smiliarity(self) -> float:
-        """Mean neighborhoods similarity"""
-        return np.mean(list(self.neighborhoods_smiliarities.values()))
+    def neighborhoods_similarities_values(self) -> np.ndarray:
+        """Return similarities values between common elements in an array"""
+        return np.array(list(self.neighborhoods_similarities.values()))
 
     @cached_property
-    def neighborhoods_ordered_smiliarities(self) -> Dict[str, float]:
+    def mean_neighborhoods_smiliarity(self) -> float:
+        """Mean neighborhoods similarity"""
+        return np.mean(self.neighborhoods_similarities_values)
+
+    @cached_property
+    def neighborhoods_ordered_similarities(self) -> Dict[str, float]:
         """Return ordered similarities between common elements
 
         Returns:
@@ -221,12 +226,17 @@ class EmbeddingComparison:
         }
 
     @cached_property
+    def neighborhoods_ordered_similarities_values(self) -> np.ndarray:
+        """Return ordered similarities values between common elements in an array"""
+        return np.array(list(self.neighborhoods_ordered_similarities.values()))
+
+    @cached_property
     def mean_neighborhoods_ordered_smiliarity(self) -> float:
         """Mean ordered neighborhoods similarity"""
-        return np.mean(list(self.neighborhoods_ordered_smiliarities.values()))
+        return np.mean(self.neighborhoods_ordered_similarities_values)
 
     def get_most_similar(self, n_elements: int) -> list:
-        """Get most similar elements from self.neighborhoods_smiliarities
+        """Get most similar elements from self.neighborhoods_similarities
 
         see itertools recipes for implementation :
         https://docs.python.org/3/library/itertools.html#recipes
@@ -237,10 +247,10 @@ class EmbeddingComparison:
         Returns:
             list: list of tuples (element, element_neighbors)
         """
-        return list(islice(self.neighborhoods_smiliarities.items(), n_elements))
+        return list(islice(self.neighborhoods_similarities.items(), n_elements))
 
     def get_least_similar(self, n_elements: int):
-        """Get least similar elements from self.neighborhoods_smiliarities
+        """Get least similar elements from self.neighborhoods_similarities
 
         see itertools recipes for implementation :
         https://docs.python.org/3/library/itertools.html#recipes
@@ -253,7 +263,7 @@ class EmbeddingComparison:
         """
         return list(
             collections.deque(
-                self.neighborhoods_smiliarities.items(), maxlen=n_elements
+                self.neighborhoods_similarities.items(), maxlen=n_elements
             )
         )
 

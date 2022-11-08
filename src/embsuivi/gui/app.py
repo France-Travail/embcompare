@@ -6,7 +6,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from embsuivi import EmbeddingComparison, EmbeddingComparisonReport, EmbeddingReport
+from embsuivi import EmbeddingComparison
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
 from embsuivi.gui.helpers import load_embedding
 from sklearn.decomposition import PCA
@@ -25,8 +25,14 @@ def main():
     advanced_parameters = get_advanced_parameters()
 
     # Tabs
-    (tab_infos, tab_stats, tab_spaces, tab_neighbors) = st.tabs(
-        ["Infos", "Statistics", "Vector spaces", "Neighborhoods similarities"]
+    (tab_infos, tab_stats, tab_spaces, tab_neighbors, tab_least_similar) = st.tabs(
+        [
+            "Infos",
+            "Statistics",
+            "Vector spaces",
+            "Neighborhoods similarities",
+            "Least similar",
+        ]
     )
 
     # Display informations about embeddings
@@ -44,7 +50,6 @@ def main():
         advanced_parameters.n_neighbors,
         advanced_parameters.max_emb_size,
     )
-
     # Display statistics
     with tab_stats:
         statistics_comparison(comparison)
@@ -55,6 +60,9 @@ def main():
 
     with tab_neighbors:
         display_neighborhood_similarities(comparison)
+
+    with tab_least_similar:
+        display_least_similar(comparison)
 
 
 def embedding_selection() -> Tuple[str, str]:
@@ -152,19 +160,16 @@ def create_comparison(
 def statistics_comparison(comparison: EmbeddingComparison):
     emb1, emb2 = comparison.embeddings
 
-    emb1_report = EmbeddingReport(emb1, comparison.n_neighbors)
-    emb2_report = EmbeddingReport(emb2, comparison.n_neighbors)
+    emb1_dist, _ = emb1.compute_neighborhoods(n_neighbors=comparison.n_neighbors)
+    emb2_dist, _ = emb2.compute_neighborhoods(n_neighbors=comparison.n_neighbors)
 
     emb1_df = pd.DataFrame(
-        {
-            "mean_dist": np.mean(emb1_report.nearest_neighbors_distances, axis=1),
-            "mean_first_dist": emb1_report.nearest_neighbors_distances[:, 0],
-        }
+        {"mean_dist": np.mean(emb1_dist, axis=1), "mean_first_dist": emb1_dist[:, 0]}
     )
     emb2_df = pd.DataFrame(
         {
-            "mean_dist": np.mean(emb2_report.nearest_neighbors_distances, axis=1),
-            "mean_first_dist": emb2_report.nearest_neighbors_distances[:, 0],
+            "mean_dist": np.mean(emb2_dist, axis=1),
+            "mean_first_dist": emb2_dist[:, 0],
         }
     )
 
@@ -221,47 +226,22 @@ def statistics_comparison(comparison: EmbeddingComparison):
             st.metric("median", f"{emb_df['mean_first_dist'].median():.1e}")
 
 
-def altair_histogram(
-    df: pd.DataFrame,
-    col: str,
-    extent: list = None,
-    color: str = None,
-    maxbins: int = 20,
-) -> alt.Chart:
-    if extent is not None:
-        bin = alt.Bin(extent=extent, maxbins=maxbins)
-    else:
-        bin = True
-
-    return (
-        alt.Chart(df)
-        .mark_bar()
-        .encode(
-            x=alt.X(col, bin=bin, title=None),
-            y=alt.Y("count()", axis=None),
-            color=alt.value(color),
-        )
-    )
-
-
 def compare_spaces(comparison: EmbeddingComparison):
-    report = EmbeddingComparisonReport(comparison)
-
-    neighborhood_sim_values = list(report.neighborhoods_similarities.values())
+    neighborhood_sim_values = comparison.neighborhoods_similarities_values
 
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
     for emb, col in zip(comparison.embeddings, st.columns(2)):
 
         emb_pca = PCA(n_components=2).fit_transform(emb.vectors)
-        inds = [emb.key_to_index[k] for k in report.neighborhoods_similarities]
+        inds = [emb.key_to_index[k] for k in comparison.neighborhoods_similarities]
 
         df_pca = pd.DataFrame(
             {
                 "x": emb_pca[inds, 0],
                 "y": emb_pca[inds, 1],
                 "sim": neighborhood_sim_values,
-                "cle": list(report.neighborhoods_similarities.keys()),
+                "cle": list(comparison.neighborhoods_similarities.keys()),
             }
         )
 
@@ -289,10 +269,8 @@ def compare_spaces(comparison: EmbeddingComparison):
 
 
 def display_neighborhood_similarities(comparison: EmbeddingComparison):
-    report = EmbeddingComparisonReport(comparison)
-
     # Neighborhoods similarities
-    neighborhood_sim_values = list(report.neighborhoods_similarities.values())
+    neighborhood_sim_values = comparison.neighborhoods_similarities_values
     df_sim = pd.DataFrame({"similarity": neighborhood_sim_values})
 
     st.subheader("Neighborhoods similarities")
@@ -312,7 +290,7 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
     st.metric("Median similarity", f"{np.median(neighborhood_sim_values):.1%}")
 
     # Neighborhoods ordered similarity
-    neighborhood_o_sim_values = list(report.neighborhoods_ordered_smiliarities.values())
+    neighborhood_o_sim_values = comparison.neighborhoods_ordered_similarities_values
     df_sim = pd.DataFrame({"similarity": neighborhood_o_sim_values})
 
     st.subheader("Neighborhoods ordered similarities")
@@ -332,6 +310,10 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
     st.metric(
         "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
     )
+
+
+def display_least_similar(comparison: EmbeddingComparison):
+    ...
 
 
 if __name__ == "__main__":

@@ -131,8 +131,8 @@ def test_common_keys(comparison_AB: EmbeddingComparison, embedding_A: Embedding)
     assert comparison_AC.common_keys == ["e", "b"]
 
 
-def test_neighborhoods_smiliarities(comparison_AB: EmbeddingComparison):
-    assert comparison_AB.neighborhoods_smiliarities == {
+def test_neighborhoods_similarities(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.neighborhoods_similarities == {
         "d": 1.0,
         "g": 1.0,
         "a": pytest.approx(1 / 3),
@@ -148,8 +148,8 @@ def test_mean_neighborhoods_smiliarity(comparison_AB: EmbeddingComparison):
     assert comparison_AB.mean_neighborhoods_smiliarity == pytest.approx((2 + 4 / 3) / 8)
 
 
-def test_neighborhoods_ordered_smiliarities(comparison_AB: EmbeddingComparison):
-    assert comparison_AB.neighborhoods_ordered_smiliarities == {
+def test_neighborhoods_ordered_similarities(comparison_AB: EmbeddingComparison):
+    assert comparison_AB.neighborhoods_ordered_similarities == {
         "d": 1.0,
         "g": 1.0,
         "a": 0.5,
