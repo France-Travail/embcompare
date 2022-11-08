@@ -3,7 +3,7 @@ import streamlit as st
 from .load_utils import EMBEDDING_FORMATS
 
 
-@st.cache(suppress_st_warning=True)
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def load_embedding(
     embedding_path: str,
     embedding_format: str,

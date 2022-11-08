@@ -18,6 +18,8 @@ config = load_configs(*sys.argv[1:])
 
 AdvancedParameters = namedtuple("AdvancedParameters", ["n_neighbors", "max_emb_size"])
 
+EMB_COLORS = ("#04BF9D", "#F27457")
+
 
 def main():
     # Embedding selection (inside the sidebar)
@@ -140,20 +142,85 @@ def create_comparison(
 
 
 def statistics_comparison(comparison: EmbeddingComparison):
-    st.subheader("Distances moyennes aux voisins")
-
     emb1, emb2 = comparison.embeddings
 
     emb1_report = EmbeddingReport(emb1, comparison.n_neighbors)
+    emb2_report = EmbeddingReport(emb2, comparison.n_neighbors)
 
     emb1_df = pd.DataFrame(
-        {"mean_dist": np.mean(emb1_report.nearest_neighbors_distances, axis=1)}
+        {
+            "mean_dist": np.mean(emb1_report.nearest_neighbors_distances, axis=1),
+            "mean_first_dist": emb1_report.nearest_neighbors_distances[:, 0],
+        }
+    )
+    emb2_df = pd.DataFrame(
+        {
+            "mean_dist": np.mean(emb2_report.nearest_neighbors_distances, axis=1),
+            "mean_first_dist": emb2_report.nearest_neighbors_distances[:, 0],
+        }
     )
 
-    st.altair_chart(
-        alt.Chart(emb1_df)
+    # Mean distances to neighbors
+    st.subheader("Mean distances to neighbors")
+
+    min_mean_dist = min(emb1_df["mean_dist"].min(), emb2_df["mean_dist"].min())
+    max_mean_dist = max(emb2_df["mean_dist"].max(), emb2_df["mean_dist"].max())
+
+    for emb_df, col, color in zip((emb1_df, emb2_df), st.columns(2), EMB_COLORS):
+        with col:
+            st.altair_chart(
+                altair_histogram(
+                    emb_df,
+                    "mean_dist",
+                    extent=[min_mean_dist, max_mean_dist],
+                    color=color,
+                )
+            )
+            st.metric("median", f"{emb_df['mean_dist'].median():.1e}")
+
+    # Mean distances to nearest neighbor
+    st.subheader("Mean distances to nearest neighbor")
+
+    min_mean_dist = min(
+        emb1_df["mean_first_dist"].min(), emb2_df["mean_first_dist"].min()
+    )
+    max_mean_dist = max(
+        emb2_df["mean_first_dist"].max(), emb2_df["mean_first_dist"].max()
+    )
+
+    for emb_df, col, color in zip((emb1_df, emb2_df), st.columns(2), EMB_COLORS):
+        with col:
+            st.altair_chart(
+                altair_histogram(
+                    emb_df,
+                    "mean_first_dist",
+                    extent=[min_mean_dist, max_mean_dist],
+                    color=color,
+                )
+            )
+            st.metric("median", f"{emb_df['mean_first_dist'].median():.1e}")
+
+
+def altair_histogram(
+    df: pd.DataFrame,
+    col: str,
+    extent: list = None,
+    color: str = "lightblue",
+    maxbins: int = 20,
+) -> alt.Chart:
+    if extent is not None:
+        bin = alt.Bin(extent=extent, maxbins=maxbins)
+    else:
+        bin = True
+
+    return (
+        alt.Chart(df)
         .mark_bar()
-        .encode(x=alt.X("mean_dist", bin=True), y="count()")
+        .encode(
+            x=alt.X(col, bin=bin, title=None),
+            y=alt.Y("count()", axis=None),
+            color=alt.value(color),
+        )
     )
 
 

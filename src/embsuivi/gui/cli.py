@@ -30,7 +30,6 @@ def cli():
     "-f", "--format", type=click.Choice(EMBEDDING_FORMATS, case_sensitive=False)
 )
 @click.option(
-    "-f",
     "--frequencies",
     type=click.Path(path_type=Path, resolve_path=True, exists=True, dir_okay=False),
 )
@@ -72,9 +71,9 @@ def add(
                 frequencies_format = "json"
 
     if CONFIG_EMBEDDINGS not in config:
-        config[CONFIG_EMBEDDINGS] = {"name": {}}
+        config[CONFIG_EMBEDDINGS] = {name: {}}
 
-    elif name not in config[CONFIG_EMBEDDINGS]:
+    if name not in config[CONFIG_EMBEDDINGS]:
         config[CONFIG_EMBEDDINGS][name] = {}
 
     embedding_conf = config[CONFIG_EMBEDDINGS][name]

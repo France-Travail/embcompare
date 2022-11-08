@@ -97,9 +97,12 @@ def load_embedding_from_word2vec(
     embedding_path: str,
     frequencies_path: str = None,
     frequencies_format: str = "json",
+    binary=True,
     **kwargs
 ):
-    keyedvectors = KeyedVectors.load_word2vec_format(embedding_path, **kwargs)
+    keyedvectors = KeyedVectors.load_word2vec_format(
+        embedding_path, binary=binary, **kwargs
+    )
 
     if frequencies_path is not None:
         frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
