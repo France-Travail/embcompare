@@ -357,6 +357,15 @@ def display_neighborhoods_elements_comparison(
 
     for key, similarity in zip(least_similar_keys, least_similar_sim):
         with st.expander(f"{key} (similarity {similarity:.0%})"):
+            # Display frequencies
+            for emb, col in zip((emb1, emb2), st.columns(2)):
+                if emb.is_frequency_set():
+                    with col:
+                        freq = emb.get_frequency(key)
+                        freq_str = f"{freq:.4f}" if freq > 0.0001 else f"{freq:.1e}"
+
+                        f"term ferquency : {freq_str}"
+
             neighbors1 = {k: s for k, s in neighborhoods_1[key]}
             neighbors2 = {k: s for k, s in neighborhoods_2[key]}
 
