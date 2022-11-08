@@ -1,0 +1,4 @@
+[run]
+omit =
+    # Omit gui modules
+    src/embsuivi/gui/*

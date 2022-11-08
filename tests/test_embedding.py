@@ -163,6 +163,7 @@ def test_load_from_keyedvectors():
     assert np.all(embedding.vectors[8, :] == [9, 9])
 
 
+@pytest.mark.filterwarnings("ignore:Adding single vectors")
 def test_add_vector():
     embedding = Embedding(vector_size=2, count=2)
     embedding.add_vector("a", [0, 1], 0.1)

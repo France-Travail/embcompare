@@ -47,10 +47,8 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=embsuivi --cov-fail-under=80"
-
-[tool.coverage.run]
-source = ["src"]
+addopts = "-v --cov=embsuivi --cov-fail-under=80 --cov-config=.coveragerc"
+filterwarnings = ["ignore:Please use `triu` from the `scipy.linalg`"]
 
 [project.scripts]
 embsuivi-compare = "embsuivi.gui.cli:cli"

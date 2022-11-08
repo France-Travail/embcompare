@@ -4,4 +4,4 @@ demo:
 	
 # Tests
 test:
-	pytest --cov=comp2vec tests/ --cov-report term-missing
+	pytest --cov-report term-missing
