@@ -1,7 +1,6 @@
 import sys
-from collections import namedtuple
 from random import sample
-from typing import List, Tuple
+from typing import List, NamedTuple, Tuple
 
 import altair as alt
 import numpy as np
@@ -9,10 +8,10 @@ import pandas as pd
 import streamlit as st
 from embsuivi import EmbeddingComparison
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
-from embsuivi.gui.helpers import load_embedding
+from embsuivi.gui.helpers import AdvancedParameters, load_embedding
 from sklearn.decomposition import PCA
 
-AdvancedParameters = namedtuple("AdvancedParameters", ["n_neighbors", "max_emb_size"])
+# theme from color.adobe.com : #253659 #03A696 #04BF9D #F27457 #BF665E
 EMB_COLORS = ("#04BF9D", "#F27457")
 
 st.set_page_config(page_title="Embedding comparison", page_icon="📊")
@@ -23,7 +22,7 @@ config = load_configs(*sys.argv[1:])
 def main():
     # Embedding selection (inside the sidebar)
     emb1_id, emb2_id = embedding_selection()
-    advanced_parameters = get_advanced_parameters()
+    advanced_parameters = AdvancedParameters.selection()
 
     with st.sidebar:
         st.info("Use shift+wheel or the arrow keys to scroll tabs")
@@ -65,7 +64,14 @@ def main():
         emb2_id,
         advanced_parameters.n_neighbors,
         advanced_parameters.max_emb_size,
+        min_frequency=advanced_parameters.min_frequency,
     )
+
+    with tab_infos:
+        for emb, col in zip(comparison.embeddings, st.columns(2)):
+            with col:
+                f"Number of elements : {emb.vectors.shape[0]}"
+
     # Display statistics
     with tab_stats:
         statistics_comparison(comparison)
@@ -121,30 +127,6 @@ def embedding_selection() -> Tuple[str, str]:
     return emb1_id, emb2_id
 
 
-def get_advanced_parameters() -> AdvancedParameters:
-    with st.sidebar:
-        n_neighbors = st.number_input(
-            "Number of neighbors to use in the comparison",
-            min_value=1,
-            max_value=1000,
-            step=10,
-            value=25,
-            key="n_neighbors",
-        )
-
-        max_emb_size = st.number_input(
-            "Maximum number of elements in the embeddings "
-            "(help to reduce memory footprint) :",
-            min_value=100,
-            max_value=200000,
-            step=10000,
-            value=10000,
-            key="max_emb_size",
-        )
-
-    return AdvancedParameters(n_neighbors, max_emb_size)
-
-
 def embedding_infos(emb1_id: str, emb2_id: str):
     emb1_infos = config[CONFIG_EMBEDDINGS][emb1_id]
     emb2_infos = config[CONFIG_EMBEDDINGS][emb2_id]
@@ -155,8 +137,13 @@ def embedding_infos(emb1_id: str, emb2_id: str):
             st.json(dict(emb_info))
 
 
+@st.cache(allow_output_mutation=True, suppress_st_warning=True, max_entries=1)
 def create_comparison(
-    emb1_id: str, emb2_id: str, n_neigbhors: int, max_emb_size: int
+    emb1_id: str,
+    emb2_id: str,
+    n_neigbhors: int,
+    max_emb_size: int,
+    min_frequency: float = None,
 ) -> EmbeddingComparison:
     emb1_infos = config[CONFIG_EMBEDDINGS][emb1_id]
     emb2_infos = config[CONFIG_EMBEDDINGS][emb2_id]
@@ -175,6 +162,24 @@ def create_comparison(
         frequencies_format=emb2_infos.get("frequencies_format", None),
     )
 
+    if min_frequency:
+        col1, col2 = st.columns(2)
+
+        if emb1.is_frequency_set():
+            emb1 = emb1.filter_by_frequency(min_frequency)
+        else:
+            with col1:
+                st.warning(
+                    f"Frequencies are not set in this embedding. Min frequency ignored"
+                )
+
+        if emb2.is_frequency_set():
+            emb2 = emb2.filter_by_frequency(min_frequency)
+        else:
+            with col2:
+                st.warning(
+                    f"Frequencies are not set in this embedding. Min frequency ignored"
+                )
     comparison = EmbeddingComparison(
         {emb1_id: emb1, emb2_id: emb2}, n_neighbors=n_neigbhors
     )

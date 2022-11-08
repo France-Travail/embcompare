@@ -233,6 +233,38 @@ class Embedding(KeyedVectors):
 
         return neighbors
 
+    def is_frequency_set(self) -> bool:
+        """Verify at least one element frequency is different from default frequency
+
+        Returns:
+            bool: True at least one element frequency is different from default
+                frequency else otherwise
+        """
+
+        return np.any(self.frequencies != self._default_freq)
+
+    def filter_by_frequency(self, threshold: float) -> TEmbedding:
+        """Return an Embedding object containing elements which have a greater
+        frequency than a given threshold
+
+        Args:
+            threshold (float): frequency threshold
+
+        Returns:
+            TEmbedding: resulting Embedding object
+        """
+        vectors = {}
+        frequencies = {}
+
+        for key in self.key_to_index:
+            freq = self.get_frequency(key)
+
+            if freq >= threshold:
+                vectors[key] = self.get_vector(key)
+                frequencies[key] = freq
+
+        return self.load_from_dict(vectors, frequencies, remove_null_vectors=False)
+
     @classmethod
     def load_from_dict(
         cls: Type[TEmbedding],

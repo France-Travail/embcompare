@@ -109,9 +109,7 @@ class EmbeddingComparison:
         """
         first_emb, second_emb = self.embeddings
 
-        return np.any(first_emb.frequencies != first_emb._default_freq) and np.any(
-            second_emb.frequencies != second_emb._default_freq
-        )
+        return first_emb.is_frequency_set() and second_emb.is_frequency_set()
 
     @cached_property
     def common_keys(self) -> list:

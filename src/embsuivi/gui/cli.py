@@ -84,7 +84,7 @@ def add(
     if format:
         embedding_conf.format = format
     if frequencies:
-        embedding_conf.frequencies = frequencies
+        embedding_conf.frequencies = frequencies.as_posix()
     if frequencies_format:
         embedding_conf.frequencies_format = frequencies_format
 
