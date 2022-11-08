@@ -1,6 +1,7 @@
 import sys
 from collections import namedtuple
-from typing import Tuple
+from random import sample
+from typing import List, Tuple
 
 import altair as alt
 import numpy as np
@@ -24,14 +25,29 @@ def main():
     emb1_id, emb2_id = embedding_selection()
     advanced_parameters = get_advanced_parameters()
 
+    with st.sidebar:
+        st.info("Use shift+wheel or the arrow keys to scroll tabs")
+
     # Tabs
-    (tab_infos, tab_stats, tab_spaces, tab_neighbors, tab_least_similar) = st.tabs(
+    (
+        tab_infos,
+        tab_stats,
+        tab_spaces,
+        tab_neighbors,
+        tab_least_similar,
+        tab_most_similar,
+        tab_random,
+        tab_custom,
+    ) = st.tabs(
         [
             "Infos",
             "Statistics",
             "Vector spaces",
             "Neighborhoods similarities",
             "Least similar",
+            "Most similar",
+            "Random elements",
+            "Custom elements",
         ]
     )
 
@@ -63,6 +79,15 @@ def main():
 
     with tab_least_similar:
         display_least_similar(comparison)
+
+    with tab_most_similar:
+        display_most_similar(comparison)
+
+    with tab_random:
+        display_random(comparison)
+
+    with tab_custom:
+        display_custom(comparison)
 
 
 def embedding_selection() -> Tuple[str, str]:
@@ -312,8 +337,94 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
     )
 
 
+def display_neighborhoods_elements_comparison(
+    comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
+):
+    emb1, emb2 = comparison.embeddings
+    least_similar_keys, least_similar_sim = list(zip(*elements))
+
+    neighborhoods_1 = emb1.get_neighbors(
+        comparison.n_neighbors, keys=least_similar_keys
+    )
+    neighborhoods_2 = emb2.get_neighbors(
+        comparison.n_neighbors, keys=least_similar_keys
+    )
+
+    for key, similarity in zip(least_similar_keys, least_similar_sim):
+        with st.expander(f"{key} (similarity {similarity:.0%})"):
+            neighbors1 = {k: s for k, s in neighborhoods_1[key]}
+            neighbors2 = {k: s for k, s in neighborhoods_2[key]}
+
+            # Display common neighbors
+            common_neighbors = {
+                k: i for i, k in enumerate(neighbors1) if k in neighbors2
+            }
+
+            if common_neighbors:
+                st.subheader("common neighbors")
+                st.table(
+                    pd.DataFrame(
+                        {
+                            "neighbor": [k for k in common_neighbors],
+                            "sim1": [neighbors1[k] for k in common_neighbors],
+                            "sim2": [neighbors2[k] for k in common_neighbors],
+                        }
+                    )
+                )
+
+            # Display other neighbors
+            only1 = {
+                k: i for i, k in enumerate(neighbors1) if k not in common_neighbors
+            }
+            only2 = {
+                k: i for i, k in enumerate(neighbors2) if k not in common_neighbors
+            }
+
+            if only1:
+                st.subheader("distinct neighbors")
+                st.table(
+                    pd.DataFrame(
+                        {
+                            "neighbor1": [k for k in only1],
+                            "sim1": [neighbors1[k] for k in only1],
+                            "sim2": [neighbors2[k] for k in only2],
+                            "neighbor2": [k for k in only2],
+                        }
+                    )
+                )
+
+
 def display_least_similar(comparison: EmbeddingComparison):
-    ...
+    display_neighborhoods_elements_comparison(
+        comparison, comparison.get_least_similar(20)
+    )
+
+
+def display_most_similar(comparison: EmbeddingComparison):
+    display_neighborhoods_elements_comparison(
+        comparison, comparison.get_most_similar(20)
+    )
+
+
+def display_random(comparison: EmbeddingComparison):
+    elements = sample(comparison.neighborhoods_similarities.items(), 20)
+    elements.sort(key=lambda x: x[1])
+    display_neighborhoods_elements_comparison(comparison, elements)
+
+
+def display_custom(comparison: EmbeddingComparison):
+    selected_elements_to_compare = st.multiselect(
+        "Select elements to compare",
+        comparison.neighborhoods_similarities,
+        key="selected_elements_to_compare",
+    )
+    elements = [
+        (e, comparison.neighborhoods_similarities[e])
+        for e in selected_elements_to_compare
+    ]
+
+    if elements:
+        display_neighborhoods_elements_comparison(comparison, elements)
 
 
 if __name__ == "__main__":
