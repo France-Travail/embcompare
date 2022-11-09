@@ -233,7 +233,7 @@ class EmbeddingComparison:
         """Mean ordered neighborhoods similarity"""
         return np.mean(self.neighborhoods_ordered_similarities_values)
 
-    def get_most_similar(self, n_elements: int) -> list:
+    def get_most_similar(self, n_elements: int, min_frequency: float = 0.0) -> list:
         """Get most similar elements from self.neighborhoods_similarities
 
         see itertools recipes for implementation :
@@ -245,9 +245,21 @@ class EmbeddingComparison:
         Returns:
             list: list of tuples (element, element_neighbors)
         """
-        return list(islice(self.neighborhoods_similarities.items(), n_elements))
+        if min_frequency:
+            emb1, emb2 = self.embeddings
+            elements = []
+            for key, sim in self.neighborhoods_similarities.items():
+                if (
+                    emb1.get_frequency(key) > min_frequency
+                    or emb2.get_frequency(key) > min_frequency
+                ):
+                    elements.append((key, sim))
+                if len(elements) >= n_elements:
+                    return elements
+        else:
+            return list(islice(self.neighborhoods_similarities.items(), n_elements))
 
-    def get_least_similar(self, n_elements: int):
+    def get_least_similar(self, n_elements: int, min_frequency: float = 0.0):
         """Get least similar elements from self.neighborhoods_similarities
 
         see itertools recipes for implementation :
@@ -259,14 +271,31 @@ class EmbeddingComparison:
         Returns:
             list: list of tuples (element, element_neighbors)
         """
-        return list(
-            collections.deque(
-                self.neighborhoods_similarities.items(), maxlen=n_elements
+        if min_frequency:
+            emb1, emb2 = self.embeddings
+            elements = []
+            keys = list(self.neighborhoods_similarities.keys())
+            for key in keys[::-1]:
+                if (
+                    emb1.get_frequency(key) > min_frequency
+                    or emb2.get_frequency(key) > min_frequency
+                ):
+
+                    elements.append((key, self.neighborhoods_similarities[key]))
+                if len(elements) >= n_elements:
+                    return elements
+        else:
+            return list(
+                collections.deque(
+                    self.neighborhoods_similarities.items(), maxlen=n_elements
+                )
             )
-        )
 
     def sampled_comparison(
-        self, n_samples: int = 10000, strategy: str = "first"
+        self,
+        n_samples: int = 10000,
+        strategy: str = "first",
+        keep_common_only: bool = True,
     ) -> TEmbeddingComparison:
         """Sample both embeddings to reduce their size and return a comparison between
         the sampled embeddings
@@ -281,9 +310,10 @@ class EmbeddingComparison:
         """
         n_samples = int(n_samples)
 
-        # If there is less elements in current comparison than the wanted number of samples
-        # we return the comparison as it is
-        if n_samples >= len(self.common_keys):
+        # If we do not wish to keep only common elements and there is less elements in
+        # the current comparison than the wanted number of samples we return the comparison
+        # as it is
+        if not keep_common_only and n_samples >= len(self.common_keys):
             return self
 
         # Selection of keys to keep according to the sampling strategy
@@ -301,7 +331,7 @@ class EmbeddingComparison:
         for emb_id, emb in zip(self.embeddings_ids, self.embeddings):
             sampled_emb: Embedding = Embedding(
                 vector_size=emb.vectors.shape[1],
-                count=n_samples,
+                count=len(selected_keys),
             )
             for key in selected_keys:
                 sampled_emb.add_vector(key, emb.get_vector(key), emb.get_frequency(key))

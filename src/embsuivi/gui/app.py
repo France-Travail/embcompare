@@ -1,5 +1,5 @@
 import sys
-from random import sample
+from random import sample, shuffle
 from typing import List, Tuple
 
 import altair as alt
@@ -50,7 +50,6 @@ def main():
     # Embedding selection (inside the sidebar)
     with st.sidebar:
         emb1_id, emb2_id = embedding_selection()
-        st.markdown("""---""")
         advanced_parameters = AdvancedParameters.selection()
         st.markdown("""---""")
         st.info("Use shift+wheel or the arrow keys to scroll tabs")
@@ -83,6 +82,9 @@ def main():
             advanced_parameters.max_emb_size,
             min_frequency=advanced_parameters.min_frequency,
         )
+
+        for emb in comparison.embeddings:
+            assert emb.vectors.shape[0] <= advanced_parameters.max_emb_size
 
     # Display number of element in both embedding and common elements
     with tab_infos:
@@ -134,20 +136,23 @@ def embedding_selection() -> Tuple[str, str]:
 
     selected_embeddings = []
 
-    for i, col in enumerate(st.columns(2)):
-        with col:
-            selected_embeddings.append(
-                st.selectbox(
-                    label=f"{'First' if i == 0 else 'Second'} embedding",
-                    options=available_embeddings,
-                    index=0,
-                    key=f"emb{i}_id",
+    with st.form("embedding_selection"):
+        for i, col in enumerate(st.columns(2)):
+            with col:
+                selected_embeddings.append(
+                    st.selectbox(
+                        label=f"{'First' if i == 0 else 'Second'} embedding",
+                        options=available_embeddings,
+                        index=0,
+                        key=f"emb{i}_id",
+                    )
                 )
-            )
+        submitted = st.form_submit_button("Compare embeddings", type="primary")
 
-    logger.info(
-        f"Selected embeddings : {selected_embeddings[0]} and {selected_embeddings[1]}"
-    )
+        if submitted:
+            logger.info(
+                f"Selected embeddings : {selected_embeddings[0]} and {selected_embeddings[1]}"
+            )
 
     return selected_embeddings
 
@@ -397,6 +402,10 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
 def display_neighborhoods_elements_comparison(
     comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
 ):
+    if not elements:
+        st.warning("No elements found")
+        return None
+
     emb1, emb2 = comparison.embeddings
     least_similar_keys, least_similar_sim = list(zip(*elements))
 
@@ -465,20 +474,104 @@ def display_neighborhoods_elements_comparison(
 
 
 def display_least_similar(comparison: EmbeddingComparison):
+    n_display_least_similar = st.number_input(
+        "Number of elements to display",
+        min_value=1,
+        max_value=len(comparison.common_keys),
+        value=20,
+        step=20,
+        key="n_display_least_similar",
+    )
+
+    min_f_display_least_similar = st.number_input(
+        "Minimum frequency of elements to display",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.0,
+        step=0.0001,
+        format="%f",
+        key="min_f_display_least_similar",
+    )
+
     display_neighborhoods_elements_comparison(
-        comparison, comparison.get_least_similar(20)
+        comparison,
+        comparison.get_least_similar(
+            n_display_least_similar, min_frequency=min_f_display_least_similar
+        ),
     )
 
 
 def display_most_similar(comparison: EmbeddingComparison):
+    n_display_most_similar = st.number_input(
+        "Number of elements to display",
+        min_value=1,
+        max_value=len(comparison.common_keys),
+        value=20,
+        step=20,
+        key="n_display_most_similar",
+    )
+
+    min_f_display_most_similar = st.number_input(
+        "Minimum frequency of elements to display",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.0,
+        step=0.0001,
+        format="%f",
+        key="min_f_display_most_similar",
+    )
+
     display_neighborhoods_elements_comparison(
-        comparison, comparison.get_most_similar(20)
+        comparison,
+        comparison.get_most_similar(
+            n_display_most_similar, min_frequency=min_f_display_most_similar
+        ),
     )
 
 
 def display_random(comparison: EmbeddingComparison):
-    elements = sample(comparison.neighborhoods_similarities.items(), 20)
+    n_display_random = st.number_input(
+        "Number of elements to display",
+        min_value=1,
+        max_value=len(comparison.common_keys),
+        value=20,
+        step=20,
+        key="n_display_random",
+    )
+
+    min_f_display_random = st.number_input(
+        "Minimum frequency of elements to display",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.0,
+        step=0.0001,
+        format="%f",
+        key="min_f_display_random",
+    )
+
+    if min_f_display_random:
+        elements = []
+        emb1, emb2 = comparison.embeddings
+
+        keys = list(comparison.neighborhoods_similarities.keys())
+        shuffle(keys)
+
+        for key in keys:
+            if (
+                emb1.get_frequency(key) >= min_f_display_random
+                or emb2.get_frequency(key) >= min_f_display_random
+            ):
+                elements.append((key, comparison.neighborhoods_similarities[key]))
+
+            if len(elements) >= n_display_random:
+                break
+    else:
+        elements = sample(
+            comparison.neighborhoods_similarities.items(), n_display_random
+        )
+
     elements.sort(key=lambda x: x[1])
+
     display_neighborhoods_elements_comparison(comparison, elements)
 
 

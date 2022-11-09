@@ -38,40 +38,45 @@ class AdvancedParameters:
 
     @classmethod
     def selection(cls):
-        n_neighbors = st.number_input(
-            "Number of neighbors to use in the comparison",
-            min_value=1,
-            max_value=1000,
-            step=10,
-            value=cls.n_neighbors,
-            key="n_neighbors",
-        )
 
-        max_emb_size = st.number_input(
-            "Maximum number of elements in the embeddings "
-            "(help to reduce memory footprint) :",
-            min_value=100,
-            max_value=200000,
-            step=10000,
-            value=cls.max_emb_size,
-            key="max_emb_size",
-        )
+        with st.form("advanced_parameters_selection"):
+            n_neighbors = st.number_input(
+                "Number of neighbors to use in the comparison",
+                min_value=1,
+                max_value=1000,
+                step=10,
+                value=cls.n_neighbors,
+                key="n_neighbors",
+            )
 
-        min_frequency = st.number_input(
-            "Minimum freqency for embedding elements :",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.001,
-            value=cls.min_frequency,
-            format="%f",
-            key="min_frequency",
-        )
+            max_emb_size = st.number_input(
+                "Maximum number of elements in the embeddings "
+                "(help to reduce memory footprint) :",
+                min_value=100,
+                max_value=200000,
+                step=10000,
+                value=cls.max_emb_size,
+                key="max_emb_size",
+            )
 
-        logger.info(
-            f"n_neighbors={n_neighbors}, "
-            f"max_emb_size={max_emb_size}, "
-            f"min_frequency={min_frequency}"
-        )
+            min_frequency = st.number_input(
+                "Minimum freqency for embedding elements :",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.0001,
+                value=cls.min_frequency,
+                format="%f",
+                key="min_frequency",
+            )
+
+            submitted = st.form_submit_button("Change parameters")
+
+            if submitted:
+                logger.info(
+                    f"n_neighbors={n_neighbors}, "
+                    f"max_emb_size={max_emb_size}, "
+                    f"min_frequency={min_frequency}"
+                )
 
         return cls(
             n_neighbors=n_neighbors,
