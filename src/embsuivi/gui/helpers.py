@@ -1,4 +1,5 @@
 import streamlit as st
+from loguru import logger
 
 from .load_utils import EMBEDDING_FORMATS
 
@@ -37,38 +38,56 @@ class AdvancedParameters:
 
     @classmethod
     def selection(cls):
-        with st.sidebar:
-            n_neighbors = st.number_input(
-                "Number of neighbors to use in the comparison",
-                min_value=1,
-                max_value=1000,
-                step=10,
-                value=cls.n_neighbors,
-                key="n_neighbors",
-            )
+        n_neighbors = st.number_input(
+            "Number of neighbors to use in the comparison",
+            min_value=1,
+            max_value=1000,
+            step=10,
+            value=cls.n_neighbors,
+            key="n_neighbors",
+        )
 
-            max_emb_size = st.number_input(
-                "Maximum number of elements in the embeddings "
-                "(help to reduce memory footprint) :",
-                min_value=100,
-                max_value=200000,
-                step=10000,
-                value=cls.max_emb_size,
-                key="max_emb_size",
-            )
+        max_emb_size = st.number_input(
+            "Maximum number of elements in the embeddings "
+            "(help to reduce memory footprint) :",
+            min_value=100,
+            max_value=200000,
+            step=10000,
+            value=cls.max_emb_size,
+            key="max_emb_size",
+        )
 
-            min_frequency = st.number_input(
-                "Minimum freqency for embedding elements :",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.001,
-                value=cls.min_frequency,
-                format="%f",
-                key="min_frequency",
-            )
+        min_frequency = st.number_input(
+            "Minimum freqency for embedding elements :",
+            min_value=0.0,
+            max_value=1.0,
+            step=0.001,
+            value=cls.min_frequency,
+            format="%f",
+            key="min_frequency",
+        )
+
+        logger.info(
+            f"n_neighbors={n_neighbors}, "
+            f"max_emb_size={max_emb_size}, "
+            f"min_frequency={min_frequency}"
+        )
 
         return cls(
             n_neighbors=n_neighbors,
             max_emb_size=max_emb_size,
             min_frequency=min_frequency,
         )
+
+
+def round_sig(value: float, n_digits: int = 2) -> float:
+    """Round float to significant figures
+
+    Args:
+        value (float): float number
+        n_digits (int, optional): number fo significant digits. Defaults to 2.
+
+    Returns:
+        float: float
+    """
+    return float(f"{value:.{n_digits}g}")

@@ -13,6 +13,9 @@ APP_FILE = GUI_DIR / "app.py"
 
 DEFAULT_CONFIG = "embsuivi.yaml"
 CONFIG_EMBEDDINGS = "embeddings"
+LOG_FORMAT = (
+    "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
+)
 
 
 @click.group()
@@ -93,9 +96,23 @@ def add(
 
 @cli.command()
 @click.argument("config", nargs=-1, type=click.Path(path_type=Path))
-def gui(config: tuple):
+@click.option(
+    "--log_level",
+    type=click.Choice(["error", "warning", "info", "debug"], case_sensitive=False),
+)
+def gui(config: tuple, log_level: str = None):
     config = config if config else (DEFAULT_CONFIG,)
-    sys.argv = ["streamlit", "run", APP_FILE.as_posix(), "--", *config]
+    log_level = ["--logger.level", log_level] if log_level else []
+    sys.argv = [
+        "streamlit",
+        "run",
+        APP_FILE.as_posix(),
+        *log_level,
+        "--logger.messageFormat",
+        LOG_FORMAT,
+        "--",
+        *config,
+    ]
     sys.exit(stcli.main())
 
 

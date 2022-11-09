@@ -1,6 +1,6 @@
 import sys
 from random import sample
-from typing import List, NamedTuple, Tuple
+from typing import List, Tuple
 
 import altair as alt
 import numpy as np
@@ -8,8 +8,12 @@ import pandas as pd
 import streamlit as st
 from embsuivi import EmbeddingComparison
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
-from embsuivi.gui.helpers import AdvancedParameters, load_embedding
+from embsuivi.gui.helpers import AdvancedParameters, load_embedding, round_sig
+from loguru import logger
 from sklearn.decomposition import PCA
+
+logger.remove()
+logger.add(sys.stderr, level=st.get_option("logger.level").upper())
 
 # theme from color.adobe.com : #253659 #03A696 #04BF9D #F27457 #BF665E
 EMB_COLORS = ("#04BF9D", "#F27457")
@@ -21,10 +25,11 @@ config = load_configs(*sys.argv[1:])
 
 def main():
     # Embedding selection (inside the sidebar)
-    emb1_id, emb2_id = embedding_selection()
-    advanced_parameters = AdvancedParameters.selection()
-
     with st.sidebar:
+        emb1_id, emb2_id = embedding_selection()
+        st.markdown("""---""")
+        advanced_parameters = AdvancedParameters.selection()
+        st.markdown("""---""")
         st.info("Use shift+wheel or the arrow keys to scroll tabs")
 
     # Tabs
@@ -50,6 +55,16 @@ def main():
         ]
     )
 
+    # Stop if one or the other embedding is not set
+    stop = False
+    for emb_id, which in zip((emb1_id, emb2_id), ("first", "second")):
+        if emb_id not in config[CONFIG_EMBEDDINGS]:
+            st.warning(f"{which} embedding : {emb_id} not in yaml config", icon="⚠")
+            stop = True
+
+    if stop:
+        st.stop()
+
     # Display informations about embeddings
     with tab_infos:
         embedding_infos(emb1_id, emb2_id)
@@ -67,16 +82,27 @@ def main():
         min_frequency=advanced_parameters.min_frequency,
     )
 
+    emb1, emb2 = comparison.embeddings
+    logger.info(f"first embedding shape : {emb1.vectors.shape}")
+    logger.info(f"second embedding shape : {emb2.vectors.shape}")
+
     with tab_infos:
         for emb, col in zip(comparison.embeddings, st.columns(2)):
             with col:
-                f"Number of elements : {emb.vectors.shape[0]}"
+                st.metric("Number of elements", emb.vectors.shape[0])
+
+        st.markdown("""---""")
+        st.metric("Number of common elements", len(comparison.common_keys))
 
     # Display statistics
     with tab_stats:
         statistics_comparison(comparison)
 
-    # Display spaces
+    if not comparison.common_keys:
+        st.warning("The embeddings have no element in common")
+        st.stop()
+
+    # Comparison below are based on common elements comparison
     with tab_spaces:
         compare_spaces(comparison)
 
@@ -95,9 +121,11 @@ def main():
     with tab_custom:
         display_custom(comparison)
 
+    logger.success("All elements have been displayed")
+
 
 def embedding_selection() -> Tuple[str, str]:
-    available_embeddings = list(config[CONFIG_EMBEDDINGS])
+    available_embeddings = [None] + list(config[CONFIG_EMBEDDINGS])
 
     if not available_embeddings:
         st.warning(
@@ -105,24 +133,25 @@ def embedding_selection() -> Tuple[str, str]:
         )
         st.stop()
 
-    with st.sidebar:
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
-            emb1_id = st.selectbox(
-                label="First embedding",
-                options=available_embeddings,
-                index=0,
-                key="emb1_id",
-            )
+    with col1:
+        emb1_id = st.selectbox(
+            label="First embedding",
+            options=available_embeddings,
+            index=0,
+            key="emb1_id",
+        )
 
-        with col2:
-            emb2_id = st.selectbox(
-                label="Second embedding",
-                options=available_embeddings,
-                index=len(available_embeddings) - 1,
-                key="emb2_id",
-            )
+    with col2:
+        emb2_id = st.selectbox(
+            label="Second embedding",
+            options=available_embeddings,
+            index=0,
+            key="emb2_id",
+        )
+
+    logger.info(f"Selected embeddings : {emb1_id} and {emb2_id}")
 
     return emb1_id, emb2_id
 
@@ -145,44 +174,35 @@ def create_comparison(
     max_emb_size: int,
     min_frequency: float = None,
 ) -> EmbeddingComparison:
-    emb1_infos = config[CONFIG_EMBEDDINGS][emb1_id]
-    emb2_infos = config[CONFIG_EMBEDDINGS][emb2_id]
+    embeddings = {}
 
-    emb1 = load_embedding(
-        embedding_path=emb1_infos["path"],
-        embedding_format=emb1_infos["format"],
-        frequencies_path=emb1_infos.get("frequencies", None),
-        frequencies_format=emb1_infos.get("frequencies_format", None),
-    )
+    for emb_id, col in zip((emb1_id, emb2_id), st.columns(2)):
+        emb_infos = config[CONFIG_EMBEDDINGS][emb_id]
 
-    emb2 = load_embedding(
-        embedding_path=emb2_infos["path"],
-        embedding_format=emb2_infos["format"],
-        frequencies_path=emb2_infos.get("frequencies", None),
-        frequencies_format=emb2_infos.get("frequencies_format", None),
-    )
+        logger.info(f"Loading {emb_infos['path']}...")
 
-    if min_frequency:
-        col1, col2 = st.columns(2)
+        emb = load_embedding(
+            embedding_path=emb_infos["path"],
+            embedding_format=emb_infos["format"],
+            frequencies_path=emb_infos.get("frequencies", None),
+            frequencies_format=emb_infos.get("frequencies_format", None),
+        )
 
-        if emb1.is_frequency_set():
-            emb1 = emb1.filter_by_frequency(min_frequency)
-        else:
-            with col1:
+        # If min freqency is set and the embedding contains frequencies
+        # we filter elements by their frequency
+        if min_frequency and emb.is_frequency_set():
+            logger.info(f"Filtering frequencies of {emb_id}...")
+            emb = emb.filter_by_frequency(min_frequency)
+
+        elif min_frequency:
+            with col:
                 st.warning(
                     f"Frequencies are not set in this embedding. Min frequency ignored"
                 )
 
-        if emb2.is_frequency_set():
-            emb2 = emb2.filter_by_frequency(min_frequency)
-        else:
-            with col2:
-                st.warning(
-                    f"Frequencies are not set in this embedding. Min frequency ignored"
-                )
-    comparison = EmbeddingComparison(
-        {emb1_id: emb1, emb2_id: emb2}, n_neighbors=n_neigbhors
-    )
+        embeddings[emb_id] = emb
+
+    comparison = EmbeddingComparison(embeddings, n_neighbors=n_neigbhors)
 
     return comparison.sampled_comparison(n_samples=max_emb_size)
 
@@ -190,7 +210,10 @@ def create_comparison(
 def statistics_comparison(comparison: EmbeddingComparison):
     emb1, emb2 = comparison.embeddings
 
+    logger.info(f"Computing first embedding neighborhoods...")
     emb1_dist, _ = emb1.compute_neighborhoods(n_neighbors=comparison.n_neighbors)
+
+    logger.info(f"Computing second embedding neighborhoods...")
     emb2_dist, _ = emb2.compute_neighborhoods(n_neighbors=comparison.n_neighbors)
 
     emb1_df = pd.DataFrame(
@@ -205,6 +228,7 @@ def statistics_comparison(comparison: EmbeddingComparison):
 
     # Mean distances to neighbors
     st.subheader("Mean distances to neighbors")
+    logger.info(f"Displaying mean distances to neighbors...")
 
     min_mean_dist = min(emb1_df["mean_dist"].min(), emb2_df["mean_dist"].min())
     max_mean_dist = max(emb2_df["mean_dist"].max(), emb2_df["mean_dist"].max())
@@ -225,10 +249,12 @@ def statistics_comparison(comparison: EmbeddingComparison):
                 ),
                 use_container_width=True,
             )
-            st.metric("median", f"{emb_df['mean_dist'].median():.1e}")
+            median = round_sig(emb_df["mean_dist"].median(), n_digits=2)
+            st.metric("median", median)
 
     # Mean distances to nearest neighbor
     st.subheader("Mean distances to nearest neighbor")
+    logger.info(f"Displaying mean distances to nearest neighbor...")
 
     min_mean_dist = min(
         emb1_df["mean_first_dist"].min(), emb2_df["mean_first_dist"].min()
@@ -253,16 +279,19 @@ def statistics_comparison(comparison: EmbeddingComparison):
                 ),
                 use_container_width=True,
             )
-            st.metric("median", f"{emb_df['mean_first_dist'].median():.1e}")
+            median = round_sig(emb_df["mean_first_dist"].median(), n_digits=2)
+            st.metric("median", median)
 
 
 def compare_spaces(comparison: EmbeddingComparison):
+    logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
 
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
     for emb, col in zip(comparison.embeddings, st.columns(2)):
 
+        logger.info(f"Computing PCA...")
         emb_pca = PCA(n_components=2).fit_transform(emb.vectors)
         inds = [emb.key_to_index[k] for k in comparison.neighborhoods_similarities]
 
@@ -275,6 +304,7 @@ def compare_spaces(comparison: EmbeddingComparison):
             }
         )
 
+        logger.info(f"Displaying vector space...")
         chart = (
             alt.Chart(df_pca)
             .mark_circle(size=60)
@@ -300,8 +330,12 @@ def compare_spaces(comparison: EmbeddingComparison):
 
 def display_neighborhood_similarities(comparison: EmbeddingComparison):
     # Neighborhoods similarities
+    logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
+
     df_sim = pd.DataFrame({"similarity": neighborhood_sim_values})
+
+    logger.info(f"Displaying neighborhoods similarities histogram...")
 
     st.subheader("Neighborhoods similarities")
     st.altair_chart(
@@ -320,8 +354,12 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
     st.metric("Median similarity", f"{np.median(neighborhood_sim_values):.1%}")
 
     # Neighborhoods ordered similarity
+    logger.info(f"Computing neighborhoods_ordered_similarities_values...")
+
     neighborhood_o_sim_values = comparison.neighborhoods_ordered_similarities_values
     df_sim = pd.DataFrame({"similarity": neighborhood_o_sim_values})
+
+    logger.info(f"Displaying ordered neighborhoods similarities histogram...")
 
     st.subheader("Neighborhoods ordered similarities")
     st.altair_chart(
@@ -348,13 +386,17 @@ def display_neighborhoods_elements_comparison(
     emb1, emb2 = comparison.embeddings
     least_similar_keys, least_similar_sim = list(zip(*elements))
 
+    logger.info("Get first embedding neighbors...")
     neighborhoods_1 = emb1.get_neighbors(
         comparison.n_neighbors, keys=least_similar_keys
     )
+
+    logger.info("Get second embedding neighbors...")
     neighborhoods_2 = emb2.get_neighbors(
         comparison.n_neighbors, keys=least_similar_keys
     )
 
+    logger.info("Display neighbors comparisons...")
     for key, similarity in zip(least_similar_keys, least_similar_sim):
         with st.expander(f"{key} (similarity {similarity:.0%})"):
             # Display frequencies
