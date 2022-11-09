@@ -24,14 +24,6 @@ config = load_configs(*sys.argv[1:])
 
 
 def main():
-    # Embedding selection (inside the sidebar)
-    with st.sidebar:
-        emb1_id, emb2_id = embedding_selection()
-        st.markdown("""---""")
-        advanced_parameters = AdvancedParameters.selection()
-        st.markdown("""---""")
-        st.info("Use shift+wheel or the arrow keys to scroll tabs")
-
     # Tabs
     (
         tab_infos,
@@ -55,6 +47,14 @@ def main():
         ]
     )
 
+    # Embedding selection (inside the sidebar)
+    with st.sidebar:
+        emb1_id, emb2_id = embedding_selection()
+        st.markdown("""---""")
+        advanced_parameters = AdvancedParameters.selection()
+        st.markdown("""---""")
+        st.info("Use shift+wheel or the arrow keys to scroll tabs")
+
     # Stop if one or the other embedding is not set
     stop = False
     for emb_id, which in zip((emb1_id, emb2_id), ("first", "second")):
@@ -74,18 +74,17 @@ def main():
         st.warning("Selected embeddings are indentical", icon="⚠")
         st.stop()
 
-    comparison = create_comparison(
-        emb1_id,
-        emb2_id,
-        advanced_parameters.n_neighbors,
-        advanced_parameters.max_emb_size,
-        min_frequency=advanced_parameters.min_frequency,
-    )
+    # Otherwise we start comparing embeddings
+    else:
+        comparison = create_comparison(
+            emb1_id,
+            emb2_id,
+            advanced_parameters.n_neighbors,
+            advanced_parameters.max_emb_size,
+            min_frequency=advanced_parameters.min_frequency,
+        )
 
-    emb1, emb2 = comparison.embeddings
-    logger.info(f"first embedding shape : {emb1.vectors.shape}")
-    logger.info(f"second embedding shape : {emb2.vectors.shape}")
-
+    # Display number of element in both embedding and common elements
     with tab_infos:
         for emb, col in zip(comparison.embeddings, st.columns(2)):
             with col:
@@ -133,37 +132,32 @@ def embedding_selection() -> Tuple[str, str]:
         )
         st.stop()
 
-    col1, col2 = st.columns(2)
+    selected_embeddings = []
 
-    with col1:
-        emb1_id = st.selectbox(
-            label="First embedding",
-            options=available_embeddings,
-            index=0,
-            key="emb1_id",
-        )
+    for i, col in enumerate(st.columns(2)):
+        with col:
+            selected_embeddings.append(
+                st.selectbox(
+                    label=f"{'First' if i == 0 else 'Second'} embedding",
+                    options=available_embeddings,
+                    index=0,
+                    key=f"emb{i}_id",
+                )
+            )
 
-    with col2:
-        emb2_id = st.selectbox(
-            label="Second embedding",
-            options=available_embeddings,
-            index=0,
-            key="emb2_id",
-        )
+    logger.info(
+        f"Selected embeddings : {selected_embeddings[0]} and {selected_embeddings[1]}"
+    )
 
-    logger.info(f"Selected embeddings : {emb1_id} and {emb2_id}")
-
-    return emb1_id, emb2_id
+    return selected_embeddings
 
 
 def embedding_infos(emb1_id: str, emb2_id: str):
-    emb1_infos = config[CONFIG_EMBEDDINGS][emb1_id]
-    emb2_infos = config[CONFIG_EMBEDDINGS][emb2_id]
-
-    for emb_info, col in zip((emb1_infos, emb2_infos), st.columns(2)):
+    for emb_id, col in zip((emb1_id, emb2_id), st.columns(2)):
+        emb_infos = config[CONFIG_EMBEDDINGS][emb_id]
         with col:
-            st.header(emb_info["name"])
-            st.json(dict(emb_info))
+            st.header(emb_infos["name"])
+            st.json(dict(emb_infos))
 
 
 @st.cache(allow_output_mutation=True, suppress_st_warning=True, max_entries=1)
@@ -326,6 +320,26 @@ def compare_spaces(comparison: EmbeddingComparison):
 
         with col:
             st.altair_chart(chart, use_container_width=True)
+
+    # Add a legend
+    chart = (
+        alt.Chart(
+            pd.DataFrame({"sim": np.round(np.linspace(0, 1, 10), 2), "y": [1] * 10})
+        )
+        .mark_rect()
+        .encode(
+            x=alt.X(
+                "sim:O", axis=alt.Axis(format="~p", title="similarity", labelAngle=0)
+            ),
+            y=alt.Y("y:O", axis=None),
+            color=alt.Color(
+                "sim",
+                scale=alt.Scale(domain=[0, 1], scheme="redyellowblue"),
+                legend=None,
+            ),
+        )
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 
 def display_neighborhood_similarities(comparison: EmbeddingComparison):
