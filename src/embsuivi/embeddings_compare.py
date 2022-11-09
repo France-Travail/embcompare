@@ -279,6 +279,8 @@ class EmbeddingComparison:
         Returns:
             TEmbeddingComparison: A EmbeddingComparison object based on sampled embeddings
         """
+        n_samples = int(n_samples)
+
         # If there is less elements in current comparison than the wanted number of samples
         # we return the comparison as it is
         if n_samples >= len(self.common_keys):
@@ -286,9 +288,9 @@ class EmbeddingComparison:
 
         # Selection of keys to keep according to the sampling strategy
         if strategy == "first":
-            selected_keys = self.common_keys[: int(n_samples)]
+            selected_keys = self.common_keys[:n_samples]
         elif strategy == "random":
-            selected_keys = sample(self.common_keys, int(n_samples))
+            selected_keys = sample(self.common_keys, n_samples)
         else:
             raise ValueError(
                 f"strategy shloud be 'first' or 'random'. Received : {strategy}"
@@ -299,11 +301,11 @@ class EmbeddingComparison:
         for emb_id, emb in zip(self.embeddings_ids, self.embeddings):
             sampled_emb: Embedding = Embedding(
                 vector_size=emb.vectors.shape[1],
-                count=int(n_samples),
+                count=n_samples,
             )
             for key in selected_keys:
                 sampled_emb.add_vector(key, emb.get_vector(key), emb.get_frequency(key))
 
-            sampled_embeddings[emb_id] = emb
+            sampled_embeddings[emb_id] = sampled_emb
 
         return self.__class__(sampled_embeddings, n_neighbors=self.n_neighbors)
