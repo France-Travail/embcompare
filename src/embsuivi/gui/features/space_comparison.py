@@ -13,6 +13,13 @@ def display_spaces_comparison(comparison: EmbeddingComparison):
 
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
+    st.markdown(
+        f"""Scatter plots below represent element vectors in each embedding space thanks to
+        [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
+
+The colors represent element neighborhoods similarities between both embeddings
+        """
+    )
     for emb, emb_labels, col in zip(
         comparison.embeddings, comparison.labels, st.columns(2)
     ):
