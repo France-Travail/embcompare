@@ -10,26 +10,28 @@ EMBEDDING_FORMATS = {}
 FREQUENCIES_FORMATS = {}
 
 
-def embedding_loader(format: str):
+def embedding_loader(*formats: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        EMBEDDING_FORMATS[format] = func
+        for format in formats:
+            EMBEDDING_FORMATS[format] = func
 
         return wrapper
 
     return decorator
 
 
-def frequencies_loader(format: str):
+def frequencies_loader(*formats: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        FREQUENCIES_FORMATS[format] = func
+        for format in formats:
+            FREQUENCIES_FORMATS[format] = func
 
         return wrapper
 
@@ -42,7 +44,7 @@ def load_frequencies_from_json(frequencies_path: str):
         return json.load(f)
 
 
-@frequencies_loader("pickle")
+@frequencies_loader("pickle", "pkl")
 def load_frequencies_from_pickle(frequencies_path: str, **kwargs):
     with open(frequencies_path, "rb") as f:
         return pickle.load(f, **kwargs)
@@ -65,7 +67,7 @@ def load_embedding_from_json(
     return Embedding.load_from_dict(embedding_dict, frequencies=frequencies)
 
 
-@embedding_loader("pickle")
+@embedding_loader("pickle", "pkl")
 def load_embedding_from_pickle(
     embedding_path: str,
     frequencies_path: str = None,
@@ -82,7 +84,7 @@ def load_embedding_from_pickle(
     return embedding
 
 
-@embedding_loader("keyedvectors")
+@embedding_loader("keyedvectors", "kv")
 def load_embedding_from_keyedvectors(
     embedding_path: str,
     frequencies_path: str = None,

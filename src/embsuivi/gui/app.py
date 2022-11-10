@@ -1,5 +1,5 @@
 import sys
-from math import log2
+from pathlib import Path
 from typing import Tuple
 
 import altair as alt
@@ -14,6 +14,7 @@ from embsuivi.gui.helpers import (
     compute_weighted_median_similarity,
     display_neighborhoods_elements_comparison,
     load_embedding,
+    load_embeddings_labels,
     round_sig,
 )
 from loguru import logger
@@ -204,7 +205,15 @@ def create_comparison(
 
     comparison = EmbeddingComparison(embeddings, n_neighbors=n_neigbhors)
 
-    return comparison.sampled_comparison(n_samples=max_emb_size)
+    # Sample comparison to reduce memory consuption
+    comparison = comparison.sampled_comparison(n_samples=max_emb_size)
+
+    # Load embeddings labels if provided and add them to comparison
+    comparison.labels = load_embeddings_labels(
+        config[CONFIG_EMBEDDINGS], emb1_id, emb2_id
+    )
+
+    return comparison
 
 
 def statistics_comparison(comparison: EmbeddingComparison):
@@ -289,7 +298,9 @@ def compare_spaces(comparison: EmbeddingComparison):
 
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
-    for emb, col in zip(comparison.embeddings, st.columns(2)):
+    for emb, emb_labels, col in zip(
+        comparison.embeddings, comparison.labels, st.columns(2)
+    ):
 
         logger.info(f"Computing PCA...")
         emb_pca = PCA(n_components=2).fit_transform(emb.vectors)
@@ -300,7 +311,9 @@ def compare_spaces(comparison: EmbeddingComparison):
                 "x": emb_pca[inds, 0],
                 "y": emb_pca[inds, 1],
                 "sim": neighborhood_sim_values,
-                "cle": list(comparison.neighborhoods_similarities.keys()),
+                "label": [
+                    emb_labels.get(k, k) for k in comparison.neighborhoods_similarities
+                ],
             }
         )
 
@@ -311,7 +324,7 @@ def compare_spaces(comparison: EmbeddingComparison):
             .encode(
                 x=alt.X("x", axis=None),
                 y=alt.Y("y", axis=None),
-                tooltip=["cle", "sim"],
+                tooltip=["label", "sim"],
                 color=alt.Color(
                     "sim",
                     scale=alt.Scale(domain=[0, 1], scheme="redyellowblue"),
@@ -402,12 +415,11 @@ def compare_neighborhood_similarities(comparison: EmbeddingComparison):
         use_container_width=True,
     )
 
-    
     col1, col2 = st.columns(2)
     with col1:
         st.metric(
-        "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
-    )
+            "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
+        )
 
     if comparison.is_frequencies_set():
         with col2:
@@ -475,10 +487,13 @@ def neighborhoods_elements_comparison(comparison: EmbeddingComparison):
 
 
 def custom_elements_comparison(comparison: EmbeddingComparison):
+    emb1_labels, _ = comparison.labels
+
     selected_elements_to_compare = st.multiselect(
         "Select elements to compare",
         comparison.neighborhoods_similarities,
         key="selected_elements_to_compare",
+        format_func=emb1_labels.get if emb1_labels else None,
     )
     elements = [
         (e, comparison.neighborhoods_similarities[e])

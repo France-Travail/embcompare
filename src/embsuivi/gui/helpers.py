@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -6,7 +7,7 @@ import streamlit as st
 from loguru import logger
 
 from ..embeddings_compare import EmbeddingComparison
-from .load_utils import EMBEDDING_FORMATS
+from .load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
 
 
 def round_sig(value: float, n_digits: int = 2) -> float:
@@ -103,10 +104,32 @@ class AdvancedParameters:
         )
 
 
+def load_embeddings_labels(
+    embedding_config: dict, emb1_id: str, emb2_id: str
+) -> Tuple[dict, dict]:
+    labels = []
+    for emb_id in (emb1_id, emb2_id):
+        emb_infos = embedding_config[emb_id]
+
+        if "labels" not in emb_infos:
+            labels.append({})
+            continue
+        else:
+            path = Path(emb_infos["labels"])
+
+        labels_format = emb_infos.get("labels_format", path.suffix[1:])
+
+        labels.append(FREQUENCIES_FORMATS[labels_format](path))
+
+    return tuple(labels)
+
+
 def display_neighborhoods_elements_comparison(
     comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
 ):
     emb1, emb2 = comparison.embeddings
+    emb1_labels, emb2_labels = comparison.labels
+
     least_similar_keys, least_similar_sim = list(zip(*elements))
 
     logger.info("Get first embedding neighbors...")
@@ -121,7 +144,10 @@ def display_neighborhoods_elements_comparison(
 
     logger.info("Display neighbors comparisons...")
     for key, similarity in zip(least_similar_keys, least_similar_sim):
-        with st.expander(f"{key} (similarity {similarity:.0%})"):
+
+        label = emb1_labels.get(key, key)
+
+        with st.expander(f"{label} (similarity {similarity:.0%})"):
             # Display frequencies
             for emb, col in zip((emb1, emb2), st.columns(2)):
                 if emb.is_frequency_set():
@@ -129,7 +155,7 @@ def display_neighborhoods_elements_comparison(
                         freq = emb.get_frequency(key)
                         freq_str = f"{freq:.4f}" if freq > 0.0001 else f"{freq:.1e}"
 
-                        f"term ferquency : {freq_str}"
+                        st.write(f"term ferquency : {freq_str}")
 
             neighbors1 = {k: s for k, s in neighborhoods_1[key]}
             neighbors2 = {k: s for k, s in neighborhoods_2[key]}
@@ -144,9 +170,11 @@ def display_neighborhoods_elements_comparison(
                 st.table(
                     pd.DataFrame(
                         {
-                            "neighbor": [k for k in common_neighbors],
-                            "sim1": [neighbors1[k] for k in common_neighbors],
-                            "sim2": [neighbors2[k] for k in common_neighbors],
+                            "neighbor": [
+                                emb1_labels.get(k, k) for k in common_neighbors
+                            ],
+                            "sim1": [f"{neighbors1[k]:.1%}" for k in common_neighbors],
+                            "sim2": [f"{neighbors2[k]:.1%}" for k in common_neighbors],
                         }
                     )
                 )
@@ -164,10 +192,10 @@ def display_neighborhoods_elements_comparison(
                 st.table(
                     pd.DataFrame(
                         {
-                            "neighbor1": [k for k in only1],
-                            "sim1": [neighbors1[k] for k in only1],
-                            "sim2": [neighbors2[k] for k in only2],
-                            "neighbor2": [k for k in only2],
+                            "neighbor1": [emb1_labels.get(k, k) for k in only1],
+                            "sim1": [f"{neighbors1[k]:.1%}" for k in only1],
+                            "sim2": [f"{neighbors2[k]:.1%}" for k in only2],
+                            "neighbor2": [emb2_labels.get(k, k) for k in only2],
                         }
                     )
                 )

@@ -40,6 +40,13 @@ def cli():
     "--frequencies-format", type=click.Choice(FREQUENCIES_FORMATS, case_sensitive=False)
 )
 @click.option(
+    "--labels",
+    type=click.Path(path_type=Path, resolve_path=True, exists=True, dir_okay=False),
+)
+@click.option(
+    "--labels-format", type=click.Choice(FREQUENCIES_FORMATS, case_sensitive=False)
+)
+@click.option(
     "-c",
     "--config",
     "config_path",
@@ -53,6 +60,8 @@ def add(
     format: str = None,
     frequencies: Path = None,
     frequencies_format: Path = None,
+    labels: Path = None,
+    labels_format: Path = None,
     config_path: Path = None,
 ):
     config = load_config(config_path)
@@ -60,6 +69,7 @@ def add(
     if name is None:
         name = path.stem
 
+    # Add format when not precised based on file extension
     if format is None:
         if path.suffix == ".bin":
             format = "fasttext"
@@ -70,9 +80,13 @@ def add(
 
     if frequencies is not None:
         if frequencies_format is None:
-            if frequencies.suffix == ".json":
-                frequencies_format = "json"
+            frequencies_format = frequencies.suffix[1:]
 
+    if labels is not None:
+        if labels_format is None:
+            labels_format = labels.suffix[1:]
+
+    # Get embedding entry in embedding configuration
     if CONFIG_EMBEDDINGS not in config:
         config[CONFIG_EMBEDDINGS] = {name: {}}
 
@@ -81,15 +95,22 @@ def add(
 
     embedding_conf = config[CONFIG_EMBEDDINGS][name]
 
+    # Set embedding configuration
     embedding_conf.name = name
     embedding_conf.path = path.as_posix()
 
     if format:
         embedding_conf.format = format
+
     if frequencies:
         embedding_conf.frequencies = frequencies.as_posix()
     if frequencies_format:
         embedding_conf.frequencies_format = frequencies_format
+
+    if labels:
+        embedding_conf.labels = labels.as_posix()
+    if labels_format:
+        embedding_conf.labels_format = labels_format
 
     save_config(config, config_path)
 
