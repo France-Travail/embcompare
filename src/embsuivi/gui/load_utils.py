@@ -1,4 +1,5 @@
 import json
+import pickle
 from functools import wraps
 
 from embsuivi import Embedding
@@ -41,6 +42,12 @@ def load_frequencies_from_json(frequencies_path: str):
         return json.load(f)
 
 
+@frequencies_loader("pickle")
+def load_frequencies_from_pickle(frequencies_path: str, **kwargs):
+    with open(frequencies_path, "rb") as f:
+        return pickle.load(f, **kwargs)
+
+
 @embedding_loader("json")
 def load_embedding_from_json(
     embedding_path: str,
@@ -56,6 +63,23 @@ def load_embedding_from_json(
         frequencies = None
 
     return Embedding.load_from_dict(embedding_dict, frequencies=frequencies)
+
+
+@embedding_loader("pickle")
+def load_embedding_from_pickle(
+    embedding_path: str,
+    frequencies_path: str = None,
+    frequencies_format: str = "json",
+    **kwargs
+):
+    with open(embedding_path, "rb") as f:
+        embedding: Embedding = pickle.load(f, **kwargs)
+
+    if frequencies_path is not None:
+        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        embedding.set_frequencies(frequencies)
+
+    return embedding
 
 
 @embedding_loader("keyedvectors")
