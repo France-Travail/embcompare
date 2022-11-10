@@ -1,7 +1,7 @@
 import collections
 from functools import cached_property
 from itertools import islice
-from random import sample
+from random import sample, shuffle
 from typing import Any, Dict, Hashable, Tuple, TypeVar, Union
 
 import numpy as np
@@ -139,7 +139,7 @@ class EmbeddingComparison:
 
                 common_keys[key] = f1 + f2
 
-        return sorted(common_keys, key=common_keys.get, reverse=True)
+        return sorted(common_keys, key=common_keys.get, reverse=frequencies_are_set)
 
     @cached_property
     def neighborhoods(self) -> Tuple[dict, dict]:
@@ -233,10 +233,70 @@ class EmbeddingComparison:
         """Mean ordered neighborhoods similarity"""
         return np.mean(self.neighborhoods_ordered_similarities_values)
 
+    def neighborhoods_similarities_iterator(
+        self,
+        strategy: str = "most_similar",
+        min_frequency: float = 0.0,
+        n_elements: int = None,
+    ):
+        """Create an iterator over neighborhoods_similarities items
+
+        Args:
+            strategy (str, optional): When strategy is "most_similar" most similar elements
+                are returned firsts. When strategy is "least_similar" least similar elements
+                are returned firsts. When strategy is "random", return elements in a random order.
+                Defaults to "most_similar".
+            min_frequency (float, optional): When min_frequency is greater than zero, elements that
+                have a frequency lower than min_frequency are filtered. Defaults to 0.0.
+            n_elements (int, optional): Maximum number of elements to return. Defaults to None.
+
+        Raises:
+            ValueError: raise an error if strategy is not one of "most_similar", "least_similar",
+                or "random"
+
+        Yields:
+            Tuple[str, float]: neighborhoods_similarities item
+        """
+        # Since neighborhoods_similarities is orderded by similiarities (from most similar to
+        # least similar), most_similar elements are already the first keys in
+        # neighborhoods_similarities
+        if strategy.lower() == "most_similar":
+            keys = self.neighborhoods_similarities.keys()
+
+        # symmetrically, most_similar elements are the last keys in neighborhoods_similarities
+        elif strategy.lower() == "least_similar":
+            keys = reversed(self.neighborhoods_similarities.keys())
+
+        elif strategy.lower() == "random":
+            keys = list(self.neighborhoods_similarities.keys())
+            shuffle(keys)
+
+        else:
+            raise ValueError(
+                "strategy should be one of ('most_similar', 'least_similar', 'random')"
+            )
+
+        emb1, emb2 = self.embeddings
+        n_returned_elements = 0
+
+        for key in keys:
+            if n_elements and n_returned_elements >= n_elements:
+                break
+            elif (
+                min_frequency <= 0.0
+                or emb1.get_frequency(key) >= min_frequency
+                or emb2.get_frequency(key) >= min_frequency
+            ):
+                n_returned_elements += 1
+                yield (key, self.neighborhoods_similarities[key])
+
     def get_most_similar(self, n_elements: int, min_frequency: float = 0.0) -> list:
         """Get most similar elements from self.neighborhoods_similarities
 
-        see itertools recipes for implementation :
+        When min_frequency is zero, we use itertools for speed. Otherwise
+        we use neighborhoods_similarities_iterator.
+
+        See itertools recipes for implementation :
         https://docs.python.org/3/library/itertools.html#recipes
 
         Args:
@@ -246,22 +306,22 @@ class EmbeddingComparison:
             list: list of tuples (element, element_neighbors)
         """
         if min_frequency:
-            emb1, emb2 = self.embeddings
-            elements = []
-            for key, sim in self.neighborhoods_similarities.items():
-                if (
-                    emb1.get_frequency(key) > min_frequency
-                    or emb2.get_frequency(key) > min_frequency
-                ):
-                    elements.append((key, sim))
-                if len(elements) >= n_elements:
-                    return elements
+            return list(
+                self.neighborhoods_similarities_iterator(
+                    strategy="most_similar",
+                    min_frequency=min_frequency,
+                    n_elements=n_elements,
+                )
+            )
         else:
             return list(islice(self.neighborhoods_similarities.items(), n_elements))
 
     def get_least_similar(self, n_elements: int, min_frequency: float = 0.0):
         """Get least similar elements from self.neighborhoods_similarities
 
+        When min_frequency is zero, we use itertools for speed. Otherwise
+        we use neighborhoods_similarities_iterator.
+
         see itertools recipes for implementation :
         https://docs.python.org/3/library/itertools.html#recipes
 
@@ -272,18 +332,14 @@ class EmbeddingComparison:
             list: list of tuples (element, element_neighbors)
         """
         if min_frequency:
-            emb1, emb2 = self.embeddings
-            elements = []
-            keys = list(self.neighborhoods_similarities.keys())
-            for key in keys[::-1]:
-                if (
-                    emb1.get_frequency(key) > min_frequency
-                    or emb2.get_frequency(key) > min_frequency
-                ):
+            return list(
+                self.neighborhoods_similarities_iterator(
+                    strategy="least_similar",
+                    min_frequency=min_frequency,
+                    n_elements=n_elements,
+                )
+            )
 
-                    elements.append((key, self.neighborhoods_similarities[key]))
-                if len(elements) >= n_elements:
-                    return elements
         else:
             return list(
                 collections.deque(

@@ -128,7 +128,7 @@ def test_common_keys(comparison_AB: EmbeddingComparison, embedding_A: Embedding)
 
     comparison_AC = EmbeddingComparison({"A": embedding_A, "C": embedding_C})
 
-    assert comparison_AC.common_keys == ["e", "b"]
+    assert comparison_AC.common_keys == ["b", "e"]
 
 
 def test_neighborhoods_similarities(comparison_AB: EmbeddingComparison):
