@@ -1,6 +1,6 @@
 import sys
-from random import sample, shuffle
-from typing import List, Tuple
+from math import log2
+from typing import Tuple
 
 import altair as alt
 import numpy as np
@@ -8,7 +8,12 @@ import pandas as pd
 import streamlit as st
 from embsuivi import EmbeddingComparison
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
-from embsuivi.gui.helpers import AdvancedParameters, load_embedding, round_sig
+from embsuivi.gui.helpers import (
+    AdvancedParameters,
+    display_neighborhoods_elements_comparison,
+    load_embedding,
+    round_sig,
+)
 from loguru import logger
 from sklearn.decomposition import PCA
 
@@ -30,20 +35,18 @@ def main():
         tab_stats,
         tab_spaces,
         tab_neighbors,
-        tab_least_similar,
-        tab_most_similar,
-        tab_random,
-        tab_custom,
+        tab_compare,
+        tab_compare_custom,
+        tab_frequencies,
     ) = st.tabs(
         [
             "Infos",
             "Statistics",
-            "Vector spaces",
-            "Neighborhoods similarities",
-            "Least similar",
-            "Most similar",
-            "Random elements",
-            "Custom elements",
+            "Spaces",
+            "Similarities",
+            "Elements",
+            "Search elements",
+            "Frequencies",
         ]
     )
 
@@ -90,7 +93,7 @@ def main():
     with tab_infos:
         for emb, col in zip(comparison.embeddings, st.columns(2)):
             with col:
-                st.metric("Number of elements", emb.vectors.shape[0])
+                st.metric("Number of loaded elements", emb.vectors.shape[0])
 
         st.markdown("""---""")
         st.metric("Number of common elements", len(comparison.common_keys))
@@ -108,19 +111,16 @@ def main():
         compare_spaces(comparison)
 
     with tab_neighbors:
-        display_neighborhood_similarities(comparison)
+        compare_neighborhood_similarities(comparison)
 
-    with tab_least_similar:
-        display_least_similar(comparison)
+    with tab_compare:
+        neighborhoods_elements_comparison(comparison)
 
-    with tab_most_similar:
-        display_most_similar(comparison)
+    with tab_compare_custom:
+        custom_elements_comparison(comparison)
 
-    with tab_random:
-        display_random(comparison)
-
-    with tab_custom:
-        display_custom(comparison)
+    with tab_frequencies:
+        compare_frequencies(comparison)
 
     logger.success("All elements have been displayed")
 
@@ -347,7 +347,7 @@ def compare_spaces(comparison: EmbeddingComparison):
     st.altair_chart(chart, use_container_width=True)
 
 
-def display_neighborhood_similarities(comparison: EmbeddingComparison):
+def compare_neighborhood_similarities(comparison: EmbeddingComparison):
     # Neighborhoods similarities
     logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
@@ -399,183 +399,66 @@ def display_neighborhood_similarities(comparison: EmbeddingComparison):
     )
 
 
-def display_neighborhoods_elements_comparison(
-    comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
-):
+def neighborhoods_elements_comparison(comparison: EmbeddingComparison):
+    strategies = {
+        "least similar": "least_similar",
+        "most similar": "most_similar",
+        "random": "random",
+    }
+    with st.form("neighborhoods_elements_comparison"):
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            strategy_elements_comparison = st.selectbox(
+                "Which elements to compare ?", strategies
+            )
+        with col2:
+            n_elements_comparison = st.number_input(
+                "Number of elements",
+                min_value=1,
+                max_value=len(comparison.common_keys),
+                value=20,
+                step=20,
+                key="n_elements_comparison",
+            )
+        with col3:
+            min_frequency_elements = st.number_input(
+                "Minimum frequency",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.0,
+                step=0.0001,
+                format="%f",
+                key="min_frequency_elements",
+                disabled=not comparison.is_frequencies_set(),
+            )
+
+        submitted = st.form_submit_button("Change parameters")
+
+        if submitted:
+            logger.info(
+                f"Selected element comparison parameters : "
+                f"strategy_elements_comparison={strategy_elements_comparison}, "
+                f"n_elements_comparison={n_elements_comparison}, "
+                f"min_frequency_elements={min_frequency_elements}"
+            )
+
+    elements = list(
+        comparison.neighborhoods_similarities_iterator(
+            strategy=strategies[strategy_elements_comparison],
+            min_frequency=min_frequency_elements,
+            n_elements=n_elements_comparison,
+        )
+    )
+
     if not elements:
         st.warning("No elements found")
         return None
 
-    emb1, emb2 = comparison.embeddings
-    least_similar_keys, least_similar_sim = list(zip(*elements))
-
-    logger.info("Get first embedding neighbors...")
-    neighborhoods_1 = emb1.get_neighbors(
-        comparison.n_neighbors, keys=least_similar_keys
-    )
-
-    logger.info("Get second embedding neighbors...")
-    neighborhoods_2 = emb2.get_neighbors(
-        comparison.n_neighbors, keys=least_similar_keys
-    )
-
-    logger.info("Display neighbors comparisons...")
-    for key, similarity in zip(least_similar_keys, least_similar_sim):
-        with st.expander(f"{key} (similarity {similarity:.0%})"):
-            # Display frequencies
-            for emb, col in zip((emb1, emb2), st.columns(2)):
-                if emb.is_frequency_set():
-                    with col:
-                        freq = emb.get_frequency(key)
-                        freq_str = f"{freq:.4f}" if freq > 0.0001 else f"{freq:.1e}"
-
-                        f"term ferquency : {freq_str}"
-
-            neighbors1 = {k: s for k, s in neighborhoods_1[key]}
-            neighbors2 = {k: s for k, s in neighborhoods_2[key]}
-
-            # Display common neighbors
-            common_neighbors = {
-                k: i for i, k in enumerate(neighbors1) if k in neighbors2
-            }
-
-            if common_neighbors:
-                st.subheader("common neighbors")
-                st.table(
-                    pd.DataFrame(
-                        {
-                            "neighbor": [k for k in common_neighbors],
-                            "sim1": [neighbors1[k] for k in common_neighbors],
-                            "sim2": [neighbors2[k] for k in common_neighbors],
-                        }
-                    )
-                )
-
-            # Display other neighbors
-            only1 = {
-                k: i for i, k in enumerate(neighbors1) if k not in common_neighbors
-            }
-            only2 = {
-                k: i for i, k in enumerate(neighbors2) if k not in common_neighbors
-            }
-
-            if only1:
-                st.subheader("distinct neighbors")
-                st.table(
-                    pd.DataFrame(
-                        {
-                            "neighbor1": [k for k in only1],
-                            "sim1": [neighbors1[k] for k in only1],
-                            "sim2": [neighbors2[k] for k in only2],
-                            "neighbor2": [k for k in only2],
-                        }
-                    )
-                )
-
-
-def display_least_similar(comparison: EmbeddingComparison):
-    n_display_least_similar = st.number_input(
-        "Number of elements to display",
-        min_value=1,
-        max_value=len(comparison.common_keys),
-        value=20,
-        step=20,
-        key="n_display_least_similar",
-    )
-
-    min_f_display_least_similar = st.number_input(
-        "Minimum frequency of elements to display",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.0,
-        step=0.0001,
-        format="%f",
-        key="min_f_display_least_similar",
-    )
-
-    display_neighborhoods_elements_comparison(
-        comparison,
-        comparison.get_least_similar(
-            n_display_least_similar, min_frequency=min_f_display_least_similar
-        ),
-    )
-
-
-def display_most_similar(comparison: EmbeddingComparison):
-    n_display_most_similar = st.number_input(
-        "Number of elements to display",
-        min_value=1,
-        max_value=len(comparison.common_keys),
-        value=20,
-        step=20,
-        key="n_display_most_similar",
-    )
-
-    min_f_display_most_similar = st.number_input(
-        "Minimum frequency of elements to display",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.0,
-        step=0.0001,
-        format="%f",
-        key="min_f_display_most_similar",
-    )
-
-    display_neighborhoods_elements_comparison(
-        comparison,
-        comparison.get_most_similar(
-            n_display_most_similar, min_frequency=min_f_display_most_similar
-        ),
-    )
-
-
-def display_random(comparison: EmbeddingComparison):
-    n_display_random = st.number_input(
-        "Number of elements to display",
-        min_value=1,
-        max_value=len(comparison.common_keys),
-        value=20,
-        step=20,
-        key="n_display_random",
-    )
-
-    min_f_display_random = st.number_input(
-        "Minimum frequency of elements to display",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.0,
-        step=0.0001,
-        format="%f",
-        key="min_f_display_random",
-    )
-
-    if min_f_display_random:
-        elements = []
-        emb1, emb2 = comparison.embeddings
-
-        keys = list(comparison.neighborhoods_similarities.keys())
-        shuffle(keys)
-
-        for key in keys:
-            if (
-                emb1.get_frequency(key) >= min_f_display_random
-                or emb2.get_frequency(key) >= min_f_display_random
-            ):
-                elements.append((key, comparison.neighborhoods_similarities[key]))
-
-            if len(elements) >= n_display_random:
-                break
-    else:
-        elements = sample(
-            comparison.neighborhoods_similarities.items(), n_display_random
-        )
-
-    elements.sort(key=lambda x: x[1])
-
     display_neighborhoods_elements_comparison(comparison, elements)
 
 
-def display_custom(comparison: EmbeddingComparison):
+def custom_elements_comparison(comparison: EmbeddingComparison):
     selected_elements_to_compare = st.multiselect(
         "Select elements to compare",
         comparison.neighborhoods_similarities,
@@ -588,6 +471,82 @@ def display_custom(comparison: EmbeddingComparison):
 
     if elements:
         display_neighborhoods_elements_comparison(comparison, elements)
+
+
+def compare_frequencies(comparison: EmbeddingComparison):
+    emb1, emb2 = comparison.embeddings
+
+    if not emb1.is_frequency_set() or not emb2.is_frequency_set():
+        return st.warning("Embeddings should both contain frequencies to compare them")
+
+    n_elements_frequencies = st.number_input(
+        "Number of elements to displayed",
+        min_value=1,
+        max_value=len(comparison.common_keys),
+        value=100,
+        step=20,
+        key="n_elements_frequencies",
+    )
+
+    # We get minimum strictly positive frequency to smooth ratio computation
+    min_freq = min(
+        np.min(emb1.frequencies[emb1.frequencies > 0]),
+        np.min(emb2.frequencies[emb2.frequencies > 0]),
+    )
+
+    if min_freq <= 0.0:
+        return st.warning("Frequencies are all equal to zero")
+
+    # Compute ratio difference bewteen common elements of both embeddings
+    # the ratio is smoothed by addind minimum frequency to numerator and
+    # denominator
+    emb1_freqs = np.array([emb1.get_frequency(k) for k in comparison.common_keys])
+    emb2_freqs = np.array([emb2.get_frequency(k) for k in comparison.common_keys])
+
+    diff = np.abs(np.log2((emb1_freqs + min_freq) / (emb2_freqs + min_freq)))
+
+    df_freqs = pd.DataFrame(
+        {
+            "element": comparison.common_keys,
+            "freq1": [f"{x:.2g}" for x in map(round_sig, emb1_freqs)],
+            "freq2": [f"{x:.2g}" for x in map(round_sig, emb2_freqs)],
+            "diff": diff,
+        }
+    ).sort_values("diff", ascending=False)
+
+    df_freqs = df_freqs.iloc[0:n_elements_frequencies]
+
+    # Add a column with variation direction
+    df_freqs["variation"] = ""
+    df_freqs.loc[
+        (df_freqs["diff"] >= np.log2(1.1)) & (df_freqs["freq2"] > df_freqs["freq1"]),
+        "variation",
+    ] = "↗"
+    df_freqs.loc[
+        (df_freqs["diff"] >= np.log2(1.1)) & (df_freqs["freq2"] < df_freqs["freq1"]),
+        "variation",
+    ] = "↘"
+
+    # Add style to dataframe
+    def styler_dataframe(df, columns):
+        top_tier = df.loc[(df["diff"] >= np.log2(1.5))]
+        two_tier = df.loc[(df["diff"] >= np.log2(1.1)) & (df["diff"] <= np.log2(1.5))]
+
+        df = df.loc[:, columns]
+
+        styler = df.style.set_properties(
+            **{"color": "rgb(242, 87, 97)"},
+            subset=pd.IndexSlice[top_tier.index, columns],
+        )
+
+        styler.set_properties(
+            **{"color": "rgb(242,155,87)"},
+            subset=pd.IndexSlice[two_tier.index, columns],
+        )
+
+        return styler
+
+    st.table(styler_dataframe(df_freqs, ["element", "freq1", "freq2", "variation"]))
 
 
 if __name__ == "__main__":
