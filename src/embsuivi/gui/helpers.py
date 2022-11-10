@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 from loguru import logger
@@ -170,3 +171,39 @@ def display_neighborhoods_elements_comparison(
                         }
                     )
                 )
+
+
+def weighted_median(values, weights):
+    i = np.argsort(values)
+    c = np.cumsum(weights[i])
+    return values[i[np.searchsorted(c, 0.5 * c[-1])]]
+
+
+def compute_weighted_median_similarity(comparison: EmbeddingComparison):
+    emb1, emb2 = comparison.embeddings
+
+    freqs_1 = np.array(
+        [emb1.get_frequency(k) for k in comparison.neighborhoods_similarities]
+    )
+    freqs_2 = np.array(
+        [emb2.get_frequency(k) for k in comparison.neighborhoods_similarities]
+    )
+    freqs_mean = (freqs_1 + freqs_2) / 2
+
+    return weighted_median(comparison.neighborhoods_similarities_values, freqs_mean)
+
+
+def compute_weighted_median_ordered_similarity(comparison: EmbeddingComparison):
+    emb1, emb2 = comparison.embeddings
+
+    freqs_1 = np.array(
+        [emb1.get_frequency(k) for k in comparison.neighborhoods_ordered_similarities]
+    )
+    freqs_2 = np.array(
+        [emb2.get_frequency(k) for k in comparison.neighborhoods_ordered_similarities]
+    )
+    freqs_mean = (freqs_1 + freqs_2) / 2
+
+    return weighted_median(
+        comparison.neighborhoods_ordered_similarities_values, freqs_mean
+    )

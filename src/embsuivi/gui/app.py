@@ -10,6 +10,8 @@ from embsuivi import EmbeddingComparison
 from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
 from embsuivi.gui.helpers import (
     AdvancedParameters,
+    compute_weighted_median_ordered_similarity,
+    compute_weighted_median_similarity,
     display_neighborhoods_elements_comparison,
     load_embedding,
     round_sig,
@@ -29,7 +31,6 @@ config = load_configs(*sys.argv[1:])
 
 
 def main():
-    # Tabs
     (
         tab_infos,
         tab_stats,
@@ -370,7 +371,14 @@ def compare_neighborhood_similarities(comparison: EmbeddingComparison):
         use_container_width=True,
     )
 
-    st.metric("Median similarity", f"{np.median(neighborhood_sim_values):.1%}")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Median similarity", f"{np.median(neighborhood_sim_values):.1%}")
+
+    if comparison.is_frequencies_set():
+        with col2:
+            weighted_median = compute_weighted_median_similarity(comparison)
+            st.metric("Frequency-weighted median similarity", f"{weighted_median:.1%}")
 
     # Neighborhoods ordered similarity
     logger.info(f"Computing neighborhoods_ordered_similarities_values...")
@@ -394,9 +402,17 @@ def compare_neighborhood_similarities(comparison: EmbeddingComparison):
         use_container_width=True,
     )
 
-    st.metric(
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(
         "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
     )
+
+    if comparison.is_frequencies_set():
+        with col2:
+            weighted_median = compute_weighted_median_ordered_similarity(comparison)
+            st.metric("Frequency-weighted median similarity", f"{weighted_median:.1%}")
 
 
 def neighborhoods_elements_comparison(comparison: EmbeddingComparison):
@@ -508,8 +524,8 @@ def compare_frequencies(comparison: EmbeddingComparison):
     df_freqs = pd.DataFrame(
         {
             "element": comparison.common_keys,
-            "freq1": [f"{x:.2g}" for x in map(round_sig, emb1_freqs)],
-            "freq2": [f"{x:.2g}" for x in map(round_sig, emb2_freqs)],
+            "freq1": emb1_freqs,
+            "freq2": emb2_freqs,
             "diff": diff,
         }
     ).sort_values("diff", ascending=False)
@@ -526,6 +542,10 @@ def compare_frequencies(comparison: EmbeddingComparison):
         (df_freqs["diff"] >= np.log2(1.1)) & (df_freqs["freq2"] < df_freqs["freq1"]),
         "variation",
     ] = "↘"
+
+    # change freqs to string representation
+    df_freqs.loc[:, "freq1"] = df_freqs["freq1"].apply(lambda x: f"{round_sig(x):.2g}")
+    df_freqs.loc[:, "freq2"] = df_freqs["freq2"].apply(lambda x: f"{round_sig(x):.2g}")
 
     # Add style to dataframe
     def styler_dataframe(df, columns):
