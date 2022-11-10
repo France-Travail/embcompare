@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
-import numpy as np
-import pandas as pd
 import streamlit as st
 from loguru import logger
 
@@ -21,6 +19,28 @@ def round_sig(value: float, n_digits: int = 2) -> float:
         float: float
     """
     return float(f"{value:.{n_digits}g}")
+
+
+def stop_if_any_embedding_unset(config_embeddings: dict, emb1_id: str, emb2_id: str):
+    emb1_is_set = emb1_id in config_embeddings
+    emb2_is_set = emb2_id in config_embeddings
+
+    if not emb1_is_set and not emb2_is_set:
+        st.warning("No embedding set", icon="⚠")
+
+    elif not emb1_is_set:
+        st.warning("First embedding not set", icon="⚠")
+
+    elif not emb2_is_set:
+        st.warning("Second embedding not set", icon="⚠")
+
+    elif emb1_id == emb2_id:
+        st.warning("Selected embeddings are indentical", icon="⚠")
+
+    else:
+        return None
+
+    st.stop()
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True, max_entries=3)
@@ -46,70 +66,60 @@ def load_embedding(
         )
 
 
-class AdvancedParameters:
-    n_neighbors: int = 25
-    max_emb_size: int = 10000
-    min_frequency: float = 0.0
+@st.cache(allow_output_mutation=True, suppress_st_warning=True, max_entries=1)
+def create_comparison(
+    config_embeddings: dict,
+    emb1_id: str,
+    emb2_id: str,
+    n_neighbors: int,
+    max_emb_size: int,
+    min_frequency: float = None,
+) -> EmbeddingComparison:
+    embeddings = {}
 
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    for emb_id, col in zip((emb1_id, emb2_id), st.columns(2)):
+        emb_infos = config_embeddings[emb_id]
 
-    @classmethod
-    def selection(cls):
+        logger.info(f"Loading {emb_infos['path']}...")
 
-        with st.form("advanced_parameters_selection"):
-            n_neighbors = st.number_input(
-                "Number of neighbors to use in the comparison",
-                min_value=1,
-                max_value=1000,
-                step=10,
-                value=cls.n_neighbors,
-                key="n_neighbors",
-            )
+        emb = load_embedding(
+            embedding_path=emb_infos["path"],
+            embedding_format=emb_infos["format"],
+            frequencies_path=emb_infos.get("frequencies", None),
+            frequencies_format=emb_infos.get("frequencies_format", None),
+        )
 
-            max_emb_size = st.number_input(
-                "Maximum number of elements in the embeddings "
-                "(help to reduce memory footprint) :",
-                min_value=100,
-                max_value=200000,
-                step=10000,
-                value=cls.max_emb_size,
-                key="max_emb_size",
-            )
+        # If min freqency is set and the embedding contains frequencies
+        # we filter elements by their frequency
+        if min_frequency and emb.is_frequency_set():
+            logger.info(f"Filtering frequencies of {emb_id}...")
+            emb = emb.filter_by_frequency(min_frequency)
 
-            min_frequency = st.number_input(
-                "Minimum freqency for embedding elements :",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.0001,
-                value=cls.min_frequency,
-                format="%f",
-                key="min_frequency",
-            )
-
-            submitted = st.form_submit_button("Change parameters")
-
-            if submitted:
-                logger.info(
-                    f"n_neighbors={n_neighbors}, "
-                    f"max_emb_size={max_emb_size}, "
-                    f"min_frequency={min_frequency}"
+        elif min_frequency:
+            with col:
+                st.warning(
+                    f"Frequencies are not set in this embedding. Min frequency ignored"
                 )
 
-        return cls(
-            n_neighbors=n_neighbors,
-            max_emb_size=max_emb_size,
-            min_frequency=min_frequency,
-        )
+        embeddings[emb_id] = emb
+
+    comparison = EmbeddingComparison(embeddings, n_neighbors=n_neighbors)
+
+    # Sample comparison to reduce memory consuption
+    comparison = comparison.sampled_comparison(n_samples=max_emb_size)
+
+    # Load embeddings labels if provided and add them to comparison
+    comparison.labels = load_embeddings_labels(config_embeddings, emb1_id, emb2_id)
+
+    return comparison
 
 
 def load_embeddings_labels(
-    embedding_config: dict, emb1_id: str, emb2_id: str
+    config_embeddings: dict, emb1_id: str, emb2_id: str
 ) -> Tuple[dict, dict]:
     labels = []
     for emb_id in (emb1_id, emb2_id):
-        emb_infos = embedding_config[emb_id]
+        emb_infos = config_embeddings[emb_id]
 
         if "labels" not in emb_infos:
             labels.append({})
@@ -122,116 +132,3 @@ def load_embeddings_labels(
         labels.append(FREQUENCIES_FORMATS[labels_format](path))
 
     return tuple(labels)
-
-
-def display_neighborhoods_elements_comparison(
-    comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
-):
-    emb1, emb2 = comparison.embeddings
-    emb1_labels, emb2_labels = comparison.labels
-
-    least_similar_keys, least_similar_sim = list(zip(*elements))
-
-    logger.info("Get first embedding neighbors...")
-    neighborhoods_1 = emb1.get_neighbors(
-        comparison.n_neighbors, keys=least_similar_keys
-    )
-
-    logger.info("Get second embedding neighbors...")
-    neighborhoods_2 = emb2.get_neighbors(
-        comparison.n_neighbors, keys=least_similar_keys
-    )
-
-    logger.info("Display neighbors comparisons...")
-    for key, similarity in zip(least_similar_keys, least_similar_sim):
-
-        label = emb1_labels.get(key, key)
-
-        with st.expander(f"{label} (similarity {similarity:.0%})"):
-            # Display frequencies
-            for emb, col in zip((emb1, emb2), st.columns(2)):
-                if emb.is_frequency_set():
-                    with col:
-                        freq = emb.get_frequency(key)
-                        freq_str = f"{freq:.4f}" if freq > 0.0001 else f"{freq:.1e}"
-
-                        st.write(f"term ferquency : {freq_str}")
-
-            neighbors1 = {k: s for k, s in neighborhoods_1[key]}
-            neighbors2 = {k: s for k, s in neighborhoods_2[key]}
-
-            # Display common neighbors
-            common_neighbors = {
-                k: i for i, k in enumerate(neighbors1) if k in neighbors2
-            }
-
-            if common_neighbors:
-                st.subheader("common neighbors")
-                st.table(
-                    pd.DataFrame(
-                        {
-                            "neighbor": [
-                                emb1_labels.get(k, k) for k in common_neighbors
-                            ],
-                            "sim1": [f"{neighbors1[k]:.1%}" for k in common_neighbors],
-                            "sim2": [f"{neighbors2[k]:.1%}" for k in common_neighbors],
-                        }
-                    )
-                )
-
-            # Display other neighbors
-            only1 = {
-                k: i for i, k in enumerate(neighbors1) if k not in common_neighbors
-            }
-            only2 = {
-                k: i for i, k in enumerate(neighbors2) if k not in common_neighbors
-            }
-
-            if only1:
-                st.subheader("distinct neighbors")
-                st.table(
-                    pd.DataFrame(
-                        {
-                            "neighbor1": [emb1_labels.get(k, k) for k in only1],
-                            "sim1": [f"{neighbors1[k]:.1%}" for k in only1],
-                            "sim2": [f"{neighbors2[k]:.1%}" for k in only2],
-                            "neighbor2": [emb2_labels.get(k, k) for k in only2],
-                        }
-                    )
-                )
-
-
-def weighted_median(values, weights):
-    i = np.argsort(values)
-    c = np.cumsum(weights[i])
-    return values[i[np.searchsorted(c, 0.5 * c[-1])]]
-
-
-def compute_weighted_median_similarity(comparison: EmbeddingComparison):
-    emb1, emb2 = comparison.embeddings
-
-    freqs_1 = np.array(
-        [emb1.get_frequency(k) for k in comparison.neighborhoods_similarities]
-    )
-    freqs_2 = np.array(
-        [emb2.get_frequency(k) for k in comparison.neighborhoods_similarities]
-    )
-    freqs_mean = (freqs_1 + freqs_2) / 2
-
-    return weighted_median(comparison.neighborhoods_similarities_values, freqs_mean)
-
-
-def compute_weighted_median_ordered_similarity(comparison: EmbeddingComparison):
-    emb1, emb2 = comparison.embeddings
-
-    freqs_1 = np.array(
-        [emb1.get_frequency(k) for k in comparison.neighborhoods_ordered_similarities]
-    )
-    freqs_2 = np.array(
-        [emb2.get_frequency(k) for k in comparison.neighborhoods_ordered_similarities]
-    )
-    freqs_mean = (freqs_1 + freqs_2) / 2
-
-    return weighted_median(
-        comparison.neighborhoods_ordered_similarities_values, freqs_mean
-    )
