@@ -4,6 +4,7 @@ from typing import Tuple
 import streamlit as st
 from loguru import logger
 
+from ..embedding import Embedding
 from ..embeddings_compare import EmbeddingComparison
 from ..load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
 
@@ -22,6 +23,13 @@ def round_sig(value: float, n_digits: int = 2) -> float:
 
 
 def stop_if_any_embedding_unset(config_embeddings: dict, emb1_id: str, emb2_id: str):
+    """Stop streamlit execution if the selected embeddings are not both in config_embeddings
+
+    Args:
+        config_embeddings (dict): embeddings configuration dict
+        emb1_id (str): first embedding id
+        emb2_id (str): second embedding id
+    """
     emb1_is_set = emb1_id in config_embeddings
     emb2_is_set = emb2_id in config_embeddings
 
@@ -49,7 +57,18 @@ def load_embedding(
     embedding_format: str,
     frequencies_path: str = None,
     frequencies_format: str = None,
-):
+) -> Embedding:
+    """Load and cache an embedding
+
+    Args:
+        embedding_path (str): embedding path
+        embedding_format (str): embeddding format
+        frequencies_path (str, optional): frequencies path. Defaults to None.
+        frequencies_format (str, optional): frequencies format. Defaults to None.
+
+    Returns:
+        Embedding: Loaded Embedding object
+    """
     try:
         loading_function = EMBEDDING_FORMATS[embedding_format.lower()]
 
@@ -75,6 +94,21 @@ def create_comparison(
     max_emb_size: int,
     min_frequency: float = None,
 ) -> EmbeddingComparison:
+    """Load and cache two embeddings and return them in an EmbeddingComparison object
+
+    Args:
+        config_embeddings (dict): embeddings configuration dict
+        emb1_id (str): first embedding id
+        emb2_id (str): second embedding id
+        n_neighbors (int): number of neighbors for comparison
+        max_emb_size (int): maximum size of the embeddings
+        min_frequency (float, optional): minimal frequency for an element to be taken
+            into account. Defaults to None.
+
+    Returns:
+        EmbeddingComparison: an EmbeddingComparison object based on the two loaded
+            embeddings
+    """
     embeddings = {}
 
     for emb_id, col in zip((emb1_id, emb2_id), st.columns(2)):
@@ -117,6 +151,16 @@ def create_comparison(
 def load_embeddings_labels(
     config_embeddings: dict, emb1_id: str, emb2_id: str
 ) -> Tuple[dict, dict]:
+    """Load a label file
+
+    Args:
+        config_embeddings (dict): embedding configuration
+        emb1_id (str): first embedding id
+        emb2_id (str): second embdding id
+
+    Returns:
+        Tuple[dict, dict]: A tuple containing labels of both embeddings
+    """
     labels = []
     for emb_id in (emb1_id, emb2_id):
         emb_infos = config_embeddings[emb_id]
@@ -131,4 +175,4 @@ def load_embeddings_labels(
 
         labels.append(FREQUENCIES_FORMATS[labels_format](path))
 
-    return tuple(labels)
+    return labels

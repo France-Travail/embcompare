@@ -25,6 +25,7 @@ config = load_configs(*sys.argv[1:])
 
 
 def main():
+    """Streamlit instruction for embeddings comparison"""
     config_embeddings = config[CONFIG_EMBEDDINGS]
 
     (
