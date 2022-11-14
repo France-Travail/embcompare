@@ -6,6 +6,7 @@ from embcompare.gui.features import (
     display_custom_elements_comparison,
     display_elements_comparison,
     display_embeddings_config,
+    display_frequencies_comparison,
     display_neighborhoods_similarities,
     display_numbers_of_elements,
     display_parameters_selection,
@@ -97,7 +98,7 @@ def main():
         display_custom_elements_comparison(comparison)
 
     with tab_frequencies:
-        display_statistics_comparison(comparison)
+        display_frequencies_comparison(comparison)
 
     logger.success("All elements have been displayed")
 

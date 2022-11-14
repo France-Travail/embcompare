@@ -87,11 +87,20 @@ def display_neighborhoods_similarities(comparison: EmbeddingComparison):
     logger.info(f"Displaying neighborhoods similarities histogram...")
 
     st.subheader("Neighborhoods similarities")
-    st.markdown(
-        f"""Neighborhood similiraty is define as the [IoU](https://en.wikipedia.org/wiki/Jaccard_index)
-        between nearest neighbors (i.e. neighborhoods) of a same element in each embedding
-        """
-    )
+
+    with st.expander("📘 Further explanations"):
+        st.markdown(
+            f"""We define neighborhood similiraty as the [IoU](https://en.wikipedia.org/wiki/Jaccard_index)
+between nearest neighbors (i.e. neighborhoods) of a same element in each embedding.
+
+When the similarity is 1, the element has the same neighbors in both embeddings (regardless of how close 
+they are to the element).
+
+The median similarity tells how identical are the neighborhoods of the two embeddings.
+
+> _Reminder: we use the {comparison.n_neighbors} nearest neighbors to compute the similarities_
+"""
+        )
     st.altair_chart(
         alt.Chart(df_sim)
         .mark_bar()
@@ -123,12 +132,23 @@ def display_neighborhoods_similarities(comparison: EmbeddingComparison):
     logger.info(f"Displaying ordered neighborhoods similarities histogram...")
 
     st.subheader("Neighborhoods ordered similarities")
-    st.markdown(
-        f"""Neighborhood ordered similiraty is define as the 
-        [edit distance similarity](https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance)
-        between the list of ordered nearest neighbors of a same element in each embedding
-        """
-    )
+
+    with st.expander("📘 Further explanations"):
+        st.markdown(
+            f"""We define neighborhood ordered similiraty as the 
+[edit distance similarity](https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance) between the 
+two sequences of ordered nearest neighbors of a same element in each embedding.
+
+When the similarity is 1, the element has the same neighbors in both embeddings and in the same order according
+to their cosine distances to the element.
+
+The median similarity tells how identical are the neighborhoods of the two embeddings while taking into account 
+the order of neighbors.
+
+> _Reminder: we use the {comparison.n_neighbors} nearest neighbors to compute the similarities_
+"""
+        )
+
     st.altair_chart(
         alt.Chart(df_sim)
         .mark_bar()

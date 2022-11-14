@@ -9,6 +9,12 @@ from loguru import logger
 def display_neighborhoods_comparisons(
     comparison: EmbeddingComparison, elements: List[Tuple[str, float]]
 ):
+    """Display comparisons between neighbors of the given list of elements
+
+    Args:
+        comparison (EmbeddingComparison): an EmbeddingComparison object
+        elements (List[Tuple[str, float]]): The elements to compare
+    """
     emb1, emb2 = comparison.embeddings
     emb1_labels, emb2_labels = comparison.labels
 
@@ -84,11 +90,27 @@ def display_neighborhoods_comparisons(
 
 
 def display_elements_comparison(comparison: EmbeddingComparison):
+    """Display a comparison between element neighborhoods  
+
+    Args:
+        comparison (EmbeddingComparison): an EmbeddingComparison object
+    """
     strategies = {
         "least similar": "least_similar",
         "most similar": "most_similar",
         "random": "random",
     }
+
+    is_frequencies_set = comparison.is_frequencies_set()
+
+    st.markdown(
+        "Compare neighborhoods of least similar, most similar or random elements."
+    )
+    if is_frequencies_set:
+        st.markdown(
+            "You can filter elements that have a too low frequency of occurrence."
+        )
+
     with st.form("neighborhoods_elements_comparison"):
         col1, col2, col3 = st.columns(3)
 
@@ -114,7 +136,7 @@ def display_elements_comparison(comparison: EmbeddingComparison):
                 step=0.0001,
                 format="%f",
                 key="min_frequency_elements",
-                disabled=not comparison.is_frequencies_set(),
+                disabled=not is_frequencies_set,
             )
 
         submitted = st.form_submit_button("Change parameters")
@@ -143,6 +165,12 @@ def display_elements_comparison(comparison: EmbeddingComparison):
 
 
 def display_custom_elements_comparison(comparison: EmbeddingComparison):
+    """Display a comparison between element neighborhoods where elements are chosen
+    by the user
+
+    Args:
+        comparison (EmbeddingComparison): an EmbeddingComparison object
+    """
     emb1_labels, _ = comparison.labels
 
     selected_elements_to_compare = st.multiselect(

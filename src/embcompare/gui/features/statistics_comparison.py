@@ -12,6 +12,11 @@ EMB_COLORS = ("#04BF9D", "#F27457")
 
 
 def display_statistics_comparison(comparison: EmbeddingComparison):
+    """Display a comparison betwenn distance statistics in embedding neihborhoods
+
+    Args:
+        comparison (EmbeddingComparison): A EmbeddingComparison object
+    """
     emb1, emb2 = comparison.embeddings
 
     logger.info(f"Computing first embedding neighborhoods...")
@@ -30,9 +35,20 @@ def display_statistics_comparison(comparison: EmbeddingComparison):
         }
     )
 
-    # Mean distances to neighbors
-    st.subheader("Mean distances to neighbors")
-    logger.info(f"Displaying mean distances to neighbors...")
+    # Distances to neighbors
+    st.subheader("Distances to neighbors")
+    with st.expander("📘 Explanation of the calculation"):
+        st.markdown(
+            f"""For each element $e$, we compute the mean distance to its {comparison.n_neighbors} nearest neighbors.
+
+The distance used between elements is the [cosine distance](https://en.wikipedia.org/wiki/Cosine_similarity)  : 
+
+$$\\overline{{D_C(e)}} = \\frac{{1}}{{{comparison.n_neighbors}}}\sum_{{i=1}}^{{{comparison.n_neighbors}}} \\left( 1 - \\frac{{e \\cdot n_i}}{{||e|| \\times ||n_i||}} \\right)$$
+
+The median of the mean distances tells about how well the elements are grouped to their neighbors
+"""
+        )
+    logger.info(f"Displaying distances to neighbors...")
 
     min_mean_dist = min(emb1_df["mean_dist"].min(), emb2_df["mean_dist"].min())
     max_mean_dist = max(emb2_df["mean_dist"].max(), emb2_df["mean_dist"].max())
@@ -57,7 +73,14 @@ def display_statistics_comparison(comparison: EmbeddingComparison):
             st.metric("median", median)
 
     # Mean distances to nearest neighbor
-    st.subheader("Mean distances to nearest neighbor")
+    st.subheader("Distances to nearest neighbor")
+    with st.expander("📘 Explanation of the calculation"):
+        st.markdown(
+            f"""For each element we also compute the distance to its nearest neighbors  
+
+The median of the distances tells about how sparse are the embeddings
+"""
+        )
     logger.info(f"Displaying mean distances to nearest neighbor...")
 
     min_mean_dist = min(

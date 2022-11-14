@@ -8,16 +8,22 @@ from sklearn.decomposition import PCA
 
 
 def display_spaces_comparison(comparison: EmbeddingComparison):
+    """Display scatter plots of embeddings spaces thanks to a PCA
+
+    Args:
+        comparison (EmbeddingComparison): A EmbeddingComparison object
+    """
+
     logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
 
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
     st.markdown(
-        f"""Scatter plots below represent element vectors in each embedding space thanks to
+        f"""Scatter plots below represent each embedding vectors spaces thanks to
         [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
 
-The colors represent element neighborhoods similarities between both embeddings
+The colors represent neighborhoods similarities between the embeddings
         """
     )
     for emb, emb_labels, col in zip(

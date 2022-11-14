@@ -7,6 +7,11 @@ from ..helpers import round_sig
 
 
 def display_frequencies_comparison(comparison: EmbeddingComparison):
+    """Display a table for frequency comparison
+
+    Args:
+        comparison (EmbeddingComparison): an EmbeddingComparison object
+    """
     emb1, emb2 = comparison.embeddings
 
     if not emb1.is_frequency_set() or not emb2.is_frequency_set():
@@ -41,8 +46,8 @@ def display_frequencies_comparison(comparison: EmbeddingComparison):
     df_freqs = pd.DataFrame(
         {
             "element": comparison.common_keys,
-            "freq1": emb1_freqs,
-            "freq2": emb2_freqs,
+            "freq_emb1": emb1_freqs,
+            "freq_emb2": emb2_freqs,
             "diff": diff,
         }
     ).sort_values("diff", ascending=False)
@@ -52,17 +57,23 @@ def display_frequencies_comparison(comparison: EmbeddingComparison):
     # Add a column with variation direction
     df_freqs["variation"] = ""
     df_freqs.loc[
-        (df_freqs["diff"] >= np.log2(1.1)) & (df_freqs["freq2"] > df_freqs["freq1"]),
+        (df_freqs["diff"] >= np.log2(1.1))
+        & (df_freqs["freq_emb2"] > df_freqs["freq_emb1"]),
         "variation",
     ] = "↗"
     df_freqs.loc[
-        (df_freqs["diff"] >= np.log2(1.1)) & (df_freqs["freq2"] < df_freqs["freq1"]),
+        (df_freqs["diff"] >= np.log2(1.1))
+        & (df_freqs["freq_emb2"] < df_freqs["freq_emb1"]),
         "variation",
     ] = "↘"
 
     # change freqs to string representation
-    df_freqs.loc[:, "freq1"] = df_freqs["freq1"].apply(lambda x: f"{round_sig(x):.2g}")
-    df_freqs.loc[:, "freq2"] = df_freqs["freq2"].apply(lambda x: f"{round_sig(x):.2g}")
+    df_freqs.loc[:, "freq_emb1"] = df_freqs["freq_emb1"].apply(
+        lambda x: f"{round_sig(x):.2g}"
+    )
+    df_freqs.loc[:, "freq_emb2"] = df_freqs["freq_emb2"].apply(
+        lambda x: f"{round_sig(x):.2g}"
+    )
 
     # Add style to dataframe
     def styler_dataframe(df, columns):
@@ -83,4 +94,6 @@ def display_frequencies_comparison(comparison: EmbeddingComparison):
 
         return styler
 
-    st.table(styler_dataframe(df_freqs, ["element", "freq1", "freq2", "variation"]))
+    st.table(
+        styler_dataframe(df_freqs, ["element", "freq_emb1", "freq_emb2", "variation"])
+    )
