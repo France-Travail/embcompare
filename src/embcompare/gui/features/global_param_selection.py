@@ -15,7 +15,7 @@ def display_embedding_selection(config_embeddings) -> Tuple[str, str]:
 
     if not available_embeddings:
         st.warning(
-            "No embeddings.\n\n" "Add embedding with `embsuivi-compare add` command"
+            "No embeddings.\n\n" "Add embedding with `embcompare-compare add` command"
         )
         st.stop()
 

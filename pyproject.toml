@@ -3,7 +3,7 @@ requires = ["setuptools>=41", "setuptools-git-versioning<2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "embsuivi"
+name = "embcompare"
 description = "Suivi des embeddings"
 authors = [
     { name = "Agence Data Services PE Aix / Nantes" },
@@ -48,8 +48,8 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=embsuivi --cov-fail-under=80 --cov-config=.coveragerc"
+addopts = "-v --cov=embcompare --cov-fail-under=80 --cov-config=.coveragerc"
 filterwarnings = ["ignore:Please use `triu` from the `scipy.linalg`"]
 
 [project.scripts]
-embsuivi-compare = "embsuivi.gui.cli:cli"
+embcompare = "embcompare.gui.cli:cli"

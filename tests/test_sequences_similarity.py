@@ -1,4 +1,4 @@
-from embsuivi import sequences_similarity
+from embcompare import sequences_similarity
 
 
 def test_damerau_levenshtein_distance():

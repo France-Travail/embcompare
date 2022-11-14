@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from embsuivi import (
+from embcompare import (
     Embedding,
     EmbeddingComparison,
     EmbeddingComparisonReport,

@@ -2,7 +2,7 @@ import json
 import pickle
 from functools import wraps
 
-from embsuivi import Embedding
+from embcompare import Embedding
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors
 

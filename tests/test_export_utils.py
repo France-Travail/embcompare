@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from embsuivi.export_utils import NumpyArrayEncoder
+from embcompare.export_utils import NumpyArrayEncoder
 
 
 def test_json_numpy_array_encoder(tmp_path: Path):

@@ -241,7 +241,7 @@ class Embedding(KeyedVectors):
                 frequency else otherwise
         """
 
-        return np.any(self.frequencies != self._default_freq)
+        return bool(np.any(self.frequencies != self._default_freq))
 
     def filter_by_frequency(self, threshold: float) -> TEmbedding:
         """Return an Embedding object containing elements which have a greater

@@ -1,8 +1,8 @@
 import sys
 
 import streamlit as st
-from embsuivi.gui.cli import CONFIG_EMBEDDINGS, load_configs
-from embsuivi.gui.features import (
+from embcompare.gui.cli import CONFIG_EMBEDDINGS, load_configs
+from embcompare.gui.features import (
     display_custom_elements_comparison,
     display_elements_comparison,
     display_embeddings_config,
@@ -12,7 +12,7 @@ from embsuivi.gui.features import (
     display_spaces_comparison,
     display_statistics_comparison,
 )
-from embsuivi.gui.helpers import create_comparison, stop_if_any_embedding_unset
+from embcompare.gui.helpers import create_comparison, stop_if_any_embedding_unset
 from loguru import logger
 
 logger.remove()

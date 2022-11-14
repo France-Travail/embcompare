@@ -6,9 +6,6 @@
 __pycache__
 *.pyc
 
-# Assets
-embsuivi-data/**
-
 # Virtualenv and local
 local
 .local

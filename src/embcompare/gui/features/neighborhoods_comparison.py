@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import pandas as pd
 import streamlit as st
-from embsuivi import EmbeddingComparison
+from embcompare import EmbeddingComparison
 from loguru import logger
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from embsuivi import Embedding
+from embcompare import Embedding
 from gensim.models.keyedvectors import KeyedVectors
 
 

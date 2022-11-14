@@ -11,7 +11,7 @@ from .load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
 GUI_DIR = Path(__file__).parent
 APP_FILE = GUI_DIR / "app.py"
 
-DEFAULT_CONFIG = "embsuivi.yaml"
+DEFAULT_CONFIG = "embcompare.yaml"
 CONFIG_EMBEDDINGS = "embeddings"
 LOG_FORMAT = (
     "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"

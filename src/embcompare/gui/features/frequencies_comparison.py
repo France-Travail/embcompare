@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-from embsuivi import EmbeddingComparison
+from embcompare import EmbeddingComparison
 
 from ..helpers import round_sig
 

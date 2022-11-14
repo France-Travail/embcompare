@@ -1,5 +1,5 @@
 import streamlit as st
-from embsuivi import EmbeddingComparison
+from embcompare import EmbeddingComparison
 
 
 def display_embeddings_config(config_embeddings: dict, emb1_id: str, emb2_id: str):
