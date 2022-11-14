@@ -5,7 +5,7 @@ import streamlit as st
 from loguru import logger
 
 from ..embeddings_compare import EmbeddingComparison
-from .load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
+from ..load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
 
 
 def round_sig(value: float, n_digits: int = 2) -> float:

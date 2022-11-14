@@ -52,4 +52,4 @@ addopts = "-v --cov=embcompare --cov-fail-under=80 --cov-config=.coveragerc"
 filterwarnings = ["ignore:Please use `triu` from the `scipy.linalg`"]
 
 [project.scripts]
-embcompare = "embcompare.gui.cli:cli"
+embcompare = "embcompare.cli:cli"

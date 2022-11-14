@@ -1,3 +1,4 @@
+import inspect
 import sys
 from pathlib import Path
 from typing import Union
@@ -6,9 +7,10 @@ import click
 from omegaconf import OmegaConf
 from streamlit.web import cli as stcli
 
+from . import gui
 from .load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
 
-GUI_DIR = Path(__file__).parent
+GUI_DIR = Path(inspect.getfile(gui)).parent
 APP_FILE = GUI_DIR / "app.py"
 
 DEFAULT_CONFIG = "embcompare.yaml"
