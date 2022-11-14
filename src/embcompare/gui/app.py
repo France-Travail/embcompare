@@ -1,7 +1,7 @@
 import sys
 
 import streamlit as st
-from embcompare.cli import CONFIG_EMBEDDINGS, load_configs
+from embcompare.config import CONFIG_EMBEDDINGS, load_configs
 from embcompare.gui.features import (
     display_custom_elements_comparison,
     display_elements_comparison,
