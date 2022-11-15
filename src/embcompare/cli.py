@@ -3,7 +3,11 @@ import sys
 from pathlib import Path
 
 import click
-from streamlit.web import cli as stcli
+
+try:
+    from streamlit.web import cli as stcli
+except ImportError:
+    stcli = None
 
 from . import gui
 from .config import CONFIG_EMBEDDINGS, load_config, save_config
@@ -117,6 +121,13 @@ def add(
     type=click.Choice(["error", "warning", "info", "debug"], case_sensitive=False),
 )
 def gui(config: tuple, log_level: str = None):  # pragma: no cover
+
+    if stcli is None:
+        raise click.ClickException(
+            "gui dependencies are not installed. "
+            "Please install them by running : pip install embcompare[gui]"
+        )
+
     config = config if config else (DEFAULT_CONFIG,)
     log_level = ["--logger.level", log_level] if log_level else []
     sys.argv = [
