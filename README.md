@@ -1,8 +1,7 @@
 # EmbCompare
 
-<video src=".assets/overview.webm" type="video/webm">
-    A short overview of embcompare graphical user interface 
-</video>
+
+![A short overview of embcompare graphical user interface ](.assets/overview.webm)
 
 # Installation
 
