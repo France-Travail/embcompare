@@ -56,6 +56,18 @@ def embedding_B() -> Embedding:
     )
 
 
+# Frequencies
+#     A   | B   | mean
+# a : 0.9 | 0.9 | 0.9
+# b : 0.8 | 0.2 | 0.5
+# c : 0.7 | 0.8 | 0.75
+# d : 0.6 | 0.6 | 0.6
+# e : 0.5 | 0.5 | 0.5
+# f : 0.4 | 0.4 | 0.4
+# g : 0.3 | 0.3 | 0.3
+# h : 0.2 | 0.7 | 0.45
+
+
 @pytest.fixture
 def comparison_AB(
     embedding_A: Embedding, embedding_B: Embedding
@@ -172,10 +184,92 @@ def test_get_most_similar(comparison_AB: EmbeddingComparison):
         ("a", pytest.approx(1 / 3)),
     ]
 
+    assert comparison_AB.get_most_similar(3, min_frequency=0.6) == [
+        ("d", 1.0),
+        ("a", pytest.approx(1 / 3)),
+        ("c", pytest.approx(1 / 3)),
+    ]
+
 
 def test_get_least_similar(comparison_AB: EmbeddingComparison):
     assert comparison_AB.get_least_similar(3) == [
-        ("f", pytest.approx(1 / 3)),
-        ("b", 0),
         ("h", 0),
+        ("b", 0),
+        ("f", pytest.approx(1 / 3)),
     ]
+
+    assert comparison_AB.get_least_similar(3, min_frequency=0.6) == [
+        ("h", 0),
+        ("b", 0),
+        ("c", pytest.approx(1 / 3)),
+    ]
+
+
+def test_neighborhoods_similarities_iterator(comparison_AB: EmbeddingComparison):
+    similarities = {
+        "d": 1.0,
+        "g": 1.0,
+        "a": 1 / 3,
+        "c": 1 / 3,
+        "e": 1 / 3,
+        "f": 1 / 3,
+        "b": 0.0,
+        "h": 0.0,
+    }
+
+    # most_similar
+    for expected_sim_item, sim_item in zip(
+        similarities.items(),
+        comparison_AB.neighborhoods_similarities_iterator(strategy="most_similar"),
+    ):
+        assert expected_sim_item == sim_item
+
+    # least similar
+    for expected_sim_item, sim_item in zip(
+        reversed(similarities.items()),
+        comparison_AB.neighborhoods_similarities_iterator(strategy="least_similar"),
+    ):
+        assert expected_sim_item == sim_item
+
+    # random
+    set(similarities.items()) == set(
+        list(comparison_AB.neighborhoods_similarities_iterator(strategy="random"))
+    )
+
+    # wrong strategy
+    with pytest.raises(ValueError):
+        next(comparison_AB.neighborhoods_similarities_iterator(strategy="noway"))
+
+    assert ["d", "g", "a"] == [
+        k for k, _ in comparison_AB.neighborhoods_similarities_iterator(n_elements=3)
+    ]
+
+
+def test_sampled_comparison(comparison_AB: EmbeddingComparison):
+    common_keys = comparison_AB.common_keys
+
+    # When the number of samples wanted is higher or equal to the common keys
+    # the comparison object is returned as it is
+    sampled_comparison = comparison_AB.sampled_comparison(
+        n_samples=len(common_keys), keep_common_only=False
+    )
+    assert sampled_comparison == comparison_AB
+
+    # Sample 3 first elements
+    sampled_comparison = comparison_AB.sampled_comparison(n_samples=3)
+    assert sampled_comparison != comparison_AB
+
+    emb1, emb2 = sampled_comparison.embeddings
+    assert sampled_comparison.common_keys == common_keys[:3]
+
+    # Sample 3 random elements
+    sampled_comparison = comparison_AB.sampled_comparison(
+        n_samples=3, strategy="random"
+    )
+
+    emb1, emb2 = sampled_comparison.embeddings
+    assert len(emb1.key_to_index) == 3
+    assert len(emb2.key_to_index) == 3
+
+    with pytest.raises(ValueError):
+        comparison_AB.sampled_comparison(strategy="noway")

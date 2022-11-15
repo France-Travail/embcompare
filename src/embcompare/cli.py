@@ -71,12 +71,7 @@ def add(
 
     # Add format when not precised based on file extension
     if format is None:
-        if path.suffix == ".bin":
-            format = "fasttext"
-        elif path.suffix == ".kv":
-            format = "keyedvectors"
-        elif path.suffix == ".json":
-            format = "json"
+        format = path.suffix[1:]
 
     if frequencies is not None:
         if frequencies_format is None:
@@ -121,7 +116,7 @@ def add(
     "--log_level",
     type=click.Choice(["error", "warning", "info", "debug"], case_sensitive=False),
 )
-def gui(config: tuple, log_level: str = None):
+def gui(config: tuple, log_level: str = None):  # pragma: no cover
     config = config if config else (DEFAULT_CONFIG,)
     log_level = ["--logger.level", log_level] if log_level else []
     sys.argv = [
@@ -137,5 +132,5 @@ def gui(config: tuple, log_level: str = None):
     sys.exit(stcli.main())
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     cli()

@@ -295,3 +295,22 @@ def test_get_neighbors(test_emb1):
         "f": [("c", x), ("g", x)],
         "g": [("g", 1), ("f", x)],
     }
+
+
+def test_filter_by_frequency(test_emb1):
+    # Initialization of an embedding with no frequencies
+    embedding: Embedding = Embedding.load_from_dict(test_emb1)
+
+    # There should be no vector left
+    filtered_embedding = embedding.filter_by_frequency(0.1)
+    assert filtered_embedding.vectors.shape == (0, embedding.vector_size)
+
+    # Initialization of an embedding with all frequencies set to 0.2
+    embedding: Embedding = Embedding.load_from_dict(test_emb1, default_freq=0.2)
+
+    # All vectors should be remaining
+    filtered_embedding = embedding.filter_by_frequency(0.1)
+    assert filtered_embedding.vectors.shape == (
+        len(embedding.key_to_index),
+        embedding.vector_size,
+    )

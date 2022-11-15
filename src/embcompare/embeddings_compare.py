@@ -293,59 +293,36 @@ class EmbeddingComparison:
     def get_most_similar(self, n_elements: int, min_frequency: float = 0.0) -> list:
         """Get most similar elements from self.neighborhoods_similarities
 
-        When min_frequency is zero, we use itertools for speed. Otherwise
-        we use neighborhoods_similarities_iterator.
-
-        See itertools recipes for implementation :
-        https://docs.python.org/3/library/itertools.html#recipes
-
         Args:
             n_elements (int): number of elements to return
 
         Returns:
             list: list of tuples (element, element_neighbors)
         """
-        if min_frequency:
-            return list(
-                self.neighborhoods_similarities_iterator(
-                    strategy="most_similar",
-                    min_frequency=min_frequency,
-                    n_elements=n_elements,
-                )
+        return list(
+            self.neighborhoods_similarities_iterator(
+                strategy="most_similar",
+                min_frequency=min_frequency,
+                n_elements=n_elements,
             )
-        else:
-            return list(islice(self.neighborhoods_similarities.items(), n_elements))
+        )
 
     def get_least_similar(self, n_elements: int, min_frequency: float = 0.0):
         """Get least similar elements from self.neighborhoods_similarities
 
-        When min_frequency is zero, we use itertools for speed. Otherwise
-        we use neighborhoods_similarities_iterator.
-
-        see itertools recipes for implementation :
-        https://docs.python.org/3/library/itertools.html#recipes
-
         Args:
             n_elements (int): number of elements to return
 
         Returns:
             list: list of tuples (element, element_neighbors)
         """
-        if min_frequency:
-            return list(
-                self.neighborhoods_similarities_iterator(
-                    strategy="least_similar",
-                    min_frequency=min_frequency,
-                    n_elements=n_elements,
-                )
+        return list(
+            self.neighborhoods_similarities_iterator(
+                strategy="least_similar",
+                min_frequency=min_frequency,
+                n_elements=n_elements,
             )
-
-        else:
-            return list(
-                collections.deque(
-                    self.neighborhoods_similarities.items(), maxlen=n_elements
-                )
-            )
+        )
 
     def sampled_comparison(
         self,

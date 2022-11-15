@@ -7,6 +7,11 @@ def embeddings_datadir(shared_datadir):
 
 
 @pytest.fixture
+def frequencies_datadir(shared_datadir):
+    return shared_datadir / "frequencies"
+
+
+@pytest.fixture
 def test_emb1():
     """Embedding de test local"""
     # g f

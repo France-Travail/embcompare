@@ -263,7 +263,15 @@ class Embedding(KeyedVectors):
                 vectors[key] = self.get_vector(key)
                 frequencies[key] = freq
 
-        return self.load_from_dict(vectors, frequencies, remove_null_vectors=False)
+        if vectors:
+            return self.load_from_dict(vectors, frequencies, remove_null_vectors=False)
+        else:
+            return self.__class__(
+                vector_size=self.vector_size,
+                count=0,
+                dtype=self._dtype,
+                default_freq=self._default_freq,
+            )
 
     @classmethod
     def load_from_dict(
@@ -271,6 +279,7 @@ class Embedding(KeyedVectors):
         embedding_dict: EmbeddingDict,
         frequencies: dict = None,
         remove_null_vectors: bool = True,
+        **kwargs,
     ) -> TEmbedding:
         """Instantiate a Embedding object from an embedding dict
 
@@ -280,6 +289,7 @@ class Embedding(KeyedVectors):
                 If None, frequencies will be initialized as a null vector. Default to None.
             remove_null_vectors (bool, optional): if True, elements with null embedding vectors are
                 removed. Default to True.
+            **kwargs: extra arguments that will be passed to the __init__ method of the Embedding class
 
         Raises:
             ValueError: embedding_dict should not be empty
@@ -312,8 +322,7 @@ class Embedding(KeyedVectors):
             embedding_items = embedding_dict.items()
 
         embedding: Embedding = cls(
-            vector_size=vector_size,
-            count=len(embedding_dict),
+            vector_size=vector_size, count=len(embedding_dict), **kwargs
         )
 
         for key, vector in embedding_items:
@@ -322,11 +331,14 @@ class Embedding(KeyedVectors):
         return embedding
 
     @classmethod
-    def load_from_json(cls: Type[TEmbedding], filepath: Union[str, Path]) -> TEmbedding:
+    def load_from_json(
+        cls: Type[TEmbedding], filepath: Union[str, Path], **kwargs
+    ) -> TEmbedding:
         """Instantiate a Embedding object from a json file
 
         Args:
             filepath (Union[str, Path]): file path
+            **kwargs: extra arguments that will be passed to the __init__ method of the Embedding class
 
         Returns:
             TEmbedding: an Embedding object
@@ -334,13 +346,14 @@ class Embedding(KeyedVectors):
         with open(filepath, "r") as f:
             embedding_dict = json.load(f)
 
-        return cls.load_from_dict(embedding_dict)
+        return cls.load_from_dict(embedding_dict, **kwargs)
 
     @classmethod
     def load_from_keyedvectors(
         cls: Type[TEmbedding],
         keyedvectors: KeyedVectors,
         frequencies: Union[dict, list, np.ndarray] = None,
+        **kwargs,
     ) -> TEmbedding:
         """Instantiate a Embedding object from a gensim KeyedVectors object
 
@@ -350,6 +363,7 @@ class Embedding(KeyedVectors):
                 Can be provided as a dict (key: frequency), or a 1D array-like frequencies ordered
                 accordingly to key_to_index. If not provided elements are added in the same order
                 than the initial KeyedVectors object. Defaults to None.
+            **kwargs: extra arguments that will be passed to the __init__ method of the Embedding class
 
         Returns:
             TEmbedding: an Embedding object
@@ -358,7 +372,7 @@ class Embedding(KeyedVectors):
 
         # Since embedding is initialized with count=keyedvectors.vectors.shape[0]
         # pre-allocated vectors are inherited
-        embedding: Embedding = cls(vector_size=vector_size, count=count)
+        embedding: Embedding = cls(vector_size=vector_size, count=count, **kwargs)
 
         # If no frequencies has been given we initialize frequencies as an empty dict
         if frequencies is None:
