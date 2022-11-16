@@ -38,7 +38,7 @@ def test_config_auto_creation(monkeypatch, tmp_path: Path):
 
     # One can also load a config file that does not exists, it will be
     # automaticaly crated
-    loaded_conf = config.load_config(tmp_path / "auto.yaml")
+    loaded_conf = config.load_config(tmp_path / "auto.yaml", autocreate="confirm")
     assert loaded_conf == {config.CONFIG_EMBEDDINGS: {}}
 
 
@@ -51,4 +51,55 @@ def test_config_not_found(monkeypatch):
 
     # Since the file does not exists it should return a FileNotFoundError
     with pytest.raises(FileNotFoundError):
-        config.load_config("noway.yaml")
+        config.load_config("noway.yaml", autocreate="confirm")
+
+
+def test_add_to_config(embeddings_datadir: Path, frequencies_datadir: Path):
+    conf = {}
+    emb_path = embeddings_datadir / "embedding_test_1.json"
+    freq_path = frequencies_datadir / "test_frequencies.json"
+    labels_path = frequencies_datadir / "test_frequencies.json"
+
+    config.add_to_config(
+        conf,
+        embedding_path=emb_path,
+        frequencies_path=freq_path,
+        labels_path=labels_path,
+    )
+
+    assert conf == {
+        config.CONFIG_EMBEDDINGS: {
+            "embedding_test_1": {
+                "name": "embedding_test_1",
+                "path": emb_path.resolve().as_posix(),
+                "format": "json",
+                "frequencies": freq_path.resolve().as_posix(),
+                "frequencies_format": "json",
+                "labels": labels_path.resolve().as_posix(),
+                "labels_format": "json",
+            }
+        }
+    }
+
+    # Change only frequencies
+    freq_path = frequencies_datadir / "test_frequencies_altered.pkl"
+
+    config.add_to_config(
+        conf,
+        embedding_name="embedding_test_1",
+        frequencies_path=freq_path,
+    )
+
+    assert conf == {
+        config.CONFIG_EMBEDDINGS: {
+            "embedding_test_1": {
+                "name": "embedding_test_1",
+                "path": emb_path.resolve().as_posix(),
+                "format": "json",
+                "frequencies": freq_path.resolve().as_posix(),
+                "frequencies_format": "pkl",
+                "labels": labels_path.resolve().as_posix(),
+                "labels_format": "json",
+            }
+        }
+    }

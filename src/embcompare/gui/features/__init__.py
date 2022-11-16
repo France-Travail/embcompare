@@ -1,3 +1,14 @@
+try:
+    import altair
+    import loguru
+    import pandas
+    import streamlit
+except ImportError:
+    raise ImportError(
+        "gui dependencies are not installed. "
+        "Please install them by running : pip install embcompare[gui]"
+    )
+
 from .config_comparison import display_embeddings_config, display_numbers_of_elements
 from .frequencies_comparison import display_frequencies_comparison
 from .global_param_selection import display_parameters_selection

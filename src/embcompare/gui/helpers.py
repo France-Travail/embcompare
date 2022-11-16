@@ -6,7 +6,7 @@ from loguru import logger
 
 from ..embedding import Embedding
 from ..embeddings_compare import EmbeddingComparison
-from ..load_utils import EMBEDDING_FORMATS, FREQUENCIES_FORMATS
+from ..load_utils import EMBEDDING_FORMATS, load_embedding, load_frequencies
 
 
 def round_sig(value: float, n_digits: int = 2) -> float:
@@ -52,7 +52,7 @@ def stop_if_any_embedding_unset(config_embeddings: dict, emb1_id: str, emb2_id: 
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True, max_entries=3)
-def load_embedding(
+def load_and_cache_embedding(
     embedding_path: str,
     embedding_format: str,
     frequencies_path: str = None,
@@ -70,16 +70,15 @@ def load_embedding(
         Embedding: Loaded Embedding object
     """
     try:
-        loading_function = EMBEDDING_FORMATS[embedding_format.lower()]
-
-        return loading_function(
-            embedding_path,
+        return load_embedding(
+            embedding_path=embedding_path,
+            embedding_format=embedding_format.lower(),
             frequencies_path=frequencies_path,
             frequencies_format=frequencies_format,
         )
     except KeyError:
         st.error(
-            f"embedding format shloud be one of `{', '.join(EMBEDDING_FORMATS)}` "
+            f"embedding format should be one of `{', '.join(EMBEDDING_FORMATS)}` "
             f"but is `{embedding_format}`\n\n"
             f"Could not load {embedding_path}"
         )
@@ -116,7 +115,7 @@ def create_comparison(
 
         logger.info(f"Loading {emb_infos['path']}...")
 
-        emb = load_embedding(
+        emb = load_and_cache_embedding(
             embedding_path=emb_infos["path"],
             embedding_format=emb_infos["format"],
             frequencies_path=emb_infos.get("frequencies", None),
@@ -143,12 +142,14 @@ def create_comparison(
     comparison = comparison.sampled_comparison(n_samples=max_emb_size)
 
     # Load embeddings labels if provided and add them to comparison
-    comparison.labels = load_embeddings_labels(config_embeddings, emb1_id, emb2_id)
+    comparison.labels = load_and_cache_embeddings_labels(
+        config_embeddings, emb1_id, emb2_id
+    )
 
     return comparison
 
 
-def load_embeddings_labels(
+def load_and_cache_embeddings_labels(
     config_embeddings: dict, emb1_id: str, emb2_id: str
 ) -> Tuple[dict, dict]:
     """Load a label file
@@ -173,6 +174,8 @@ def load_embeddings_labels(
 
         labels_format = emb_infos.get("labels_format", path.suffix[1:])
 
-        labels.append(FREQUENCIES_FORMATS[labels_format](path))
+        # We use load_frequencies since frequencies are stored in the same formats
+        # than labels
+        labels.append(load_frequencies(path, format=labels_format))
 
     return labels

@@ -26,6 +26,20 @@ def test_load_frequencies_from_pickle(frequencies_datadir: Path):
     assert max(frequencies.values()) < 1
 
 
+def test_load_frequencies(frequencies_datadir: Path):
+    frequencies = load_utils.load_frequencies(
+        frequencies_datadir / "test_frequencies.json"
+    )
+
+    assert len(frequencies) == 2166
+
+    frequencies = load_utils.load_frequencies(
+        frequencies_datadir / "test_frequencies_altered.pkl"
+    )
+
+    assert len(frequencies) == 2166
+
+
 def test_load_embedding_from_json(frequencies_datadir: Path, embeddings_datadir: Path):
     """Load embedding from a json file"""
     embedding = load_utils.load_embedding_from_json(
@@ -123,6 +137,17 @@ def test_load_embedding_from_word2vec(
 
     embedding = load_utils.load_embedding_from_word2vec(
         embeddings_datadir / "word2vec_ex.bin",
+        frequencies_path=frequencies_datadir / "test_frequencies.json",
+    )
+
+    assert isinstance(embedding, Embedding)
+    assert embedding.vectors.shape == (2166, 4)
+    assert embedding.is_frequency_set()
+
+
+def test_load_embedding(frequencies_datadir: Path, embeddings_datadir: Path):
+    embedding = load_utils.load_embedding(
+        embeddings_datadir / "fasttext_ex.bin",
         frequencies_path=frequencies_datadir / "test_frequencies.json",
     )
 

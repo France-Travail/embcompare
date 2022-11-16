@@ -94,11 +94,30 @@ def load_frequencies_from_pickle(frequencies_path: Union[str, Path], **kwargs) -
         return pickle.load(f, **kwargs)
 
 
+def load_frequencies(
+    frequencies_path: Union[str, Path], format: str = None, **kwargs
+) -> dict:
+    """Main loading function for frequenciesDefaults to "json"
+
+    Args:
+        frequencies_path (Union[str, Path]): file path
+        format (str, optional): file format. Defaults to None.
+        **kwargs: arguments that will be passed to the relevant loading function
+
+    Returns:
+        dict: A frequencies dict
+    """
+    if format is None:
+        format = Path(frequencies_path).suffix[1:]
+
+    return FREQUENCIES_FORMATS[format](frequencies_path, **kwargs)
+
+
 @embedding_loader("json")
 def load_embedding_from_json(
     embedding_path: Union[str, Path],
     frequencies_path: Union[str, Path] = None,
-    frequencies_format: str = "json",
+    frequencies_format: str = None,
     **kwargs
 ) -> Embedding:
     """Loader of embeddings stored in a json file
@@ -106,7 +125,7 @@ def load_embedding_from_json(
     Args:
         embedding_path (str): embedding file path
         frequencies_path (str, optional): frequencies file path. Defaults to None.
-        frequencies_format (str, optional): frequencies file format. Defaults to "json".
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
         **kwargs: arguments that will be passed to Embedding.load_from_dict
 
     Returns:
@@ -116,7 +135,7 @@ def load_embedding_from_json(
         embedding_dict = json.load(f)
 
     if frequencies_path is not None:
-        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        frequencies = load_frequencies(frequencies_path, format=frequencies_format)
     else:
         frequencies = None
 
@@ -127,7 +146,7 @@ def load_embedding_from_json(
 def load_embedding_from_pickle(
     embedding_path: Union[str, Path],
     frequencies_path: Union[str, Path] = None,
-    frequencies_format: str = "json",
+    frequencies_format: str = None,
     **kwargs
 ):
     """Loader of embeddings stored in a pickle file
@@ -135,7 +154,7 @@ def load_embedding_from_pickle(
     Args:
         embedding_path (str): embedding file path
         frequencies_path (str, optional): frequencies file path. Defaults to None.
-        frequencies_format (str, optional): frequencies file format. Defaults to "json".
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
         **kwargs: arguments that will be passed to pickle.load
 
     Returns:
@@ -145,7 +164,7 @@ def load_embedding_from_pickle(
         embedding: Embedding = pickle.load(f, **kwargs)
 
     if frequencies_path is not None:
-        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        frequencies = load_frequencies(frequencies_path, format=frequencies_format)
         embedding.set_frequencies(frequencies)
 
     return embedding
@@ -155,7 +174,7 @@ def load_embedding_from_pickle(
 def load_embedding_from_keyedvectors(
     embedding_path: Union[str, Path],
     frequencies_path: Union[str, Path] = None,
-    frequencies_format: str = "json",
+    frequencies_format: str = None,
     **kwargs
 ):
     """Loader of embeddings stored in a gensim keyedvector file
@@ -163,7 +182,7 @@ def load_embedding_from_keyedvectors(
     Args:
         embedding_path (str): embedding file path
         frequencies_path (str, optional): frequencies file path. Defaults to None.
-        frequencies_format (str, optional): frequencies file format. Defaults to "json".
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
         **kwargs: arguments that will be passed to KeyedVectors.load
 
     Returns:
@@ -172,7 +191,7 @@ def load_embedding_from_keyedvectors(
     keyedvectors = KeyedVectors.load(embedding_path.as_posix(), **kwargs)
 
     if frequencies_path is not None:
-        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        frequencies = load_frequencies(frequencies_path, format=frequencies_format)
     else:
         frequencies = None
 
@@ -183,7 +202,7 @@ def load_embedding_from_keyedvectors(
 def load_embedding_from_fasttext(
     embedding_path: Union[str, Path],
     frequencies_path: Union[str, Path] = None,
-    frequencies_format: str = "json",
+    frequencies_format: str = None,
     **kwargs
 ):
     """Loader of embeddings stored in a fasttext binary file
@@ -191,7 +210,7 @@ def load_embedding_from_fasttext(
     Args:
         embedding_path (str): embedding file path
         frequencies_path (str, optional): frequencies file path. Defaults to None.
-        frequencies_format (str, optional): frequencies file format. Defaults to "json".
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
         **kwargs: arguments that will be passed to gensim.load_facebook_vectors
 
     Returns:
@@ -200,7 +219,7 @@ def load_embedding_from_fasttext(
     keyedvectors = load_facebook_vectors(embedding_path, **kwargs)
 
     if frequencies_path is not None:
-        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        frequencies = load_frequencies(frequencies_path, format=frequencies_format)
     else:
         frequencies = None
 
@@ -211,7 +230,7 @@ def load_embedding_from_fasttext(
 def load_embedding_from_word2vec(
     embedding_path: Union[str, Path],
     frequencies_path: Union[str, Path] = None,
-    frequencies_format: str = "json",
+    frequencies_format: str = None,
     binary=True,
     **kwargs
 ):
@@ -220,7 +239,7 @@ def load_embedding_from_word2vec(
     Args:
         embedding_path (str): embedding file path
         frequencies_path (str, optional): frequencies file path. Defaults to None.
-        frequencies_format (str, optional): frequencies file format. Defaults to "json".
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
         **kwargs: arguments that will be passed to KeyedVectors.load_word2vec_format
 
     Returns:
@@ -231,8 +250,38 @@ def load_embedding_from_word2vec(
     )
 
     if frequencies_path is not None:
-        frequencies = FREQUENCIES_FORMATS[frequencies_format](frequencies_path)
+        frequencies = load_frequencies(frequencies_path, format=frequencies_format)
     else:
         frequencies = None
 
     return Embedding.load_from_keyedvectors(keyedvectors, frequencies=frequencies)
+
+
+def load_embedding(
+    embedding_path: Union[str, Path],
+    embedding_format: str = None,
+    frequencies_path: Union[str, Path] = None,
+    frequencies_format: str = None,
+    **kwargs
+) -> Embedding:
+    """Main loading function for embeddings
+
+    Args:
+        embedding_path (str): embedding file path
+        embedding_format (str, optional): embedding file format. Defaults to None.
+        frequencies_path (str, optional): frequencies file path. Defaults to None.
+        frequencies_format (str, optional): frequencies file format. Defaults to None.
+        **kwargs: arguments that will be passed to relevant loading function
+
+    Returns:
+        Embedding: An Embedding object
+    """
+    if embedding_format is None:
+        embedding_format = Path(embedding_path).suffix[1:]
+
+    return EMBEDDING_FORMATS[embedding_format](
+        embedding_path=embedding_path,
+        frequencies_path=frequencies_path,
+        frequencies_format=frequencies_format,
+        **kwargs,
+    )
