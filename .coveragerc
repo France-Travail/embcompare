@@ -1,4 +1,4 @@
 [run]
 omit =
     # Omit gui modules
-    src/embcompare/gui/*
+    */embcompare/gui/*
