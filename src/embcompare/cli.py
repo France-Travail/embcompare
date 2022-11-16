@@ -24,8 +24,9 @@ def cli():
 
 
 @cli.command("add")
-@click.argument(
-    "path",
+@click.option(
+    "-p",
+    "--path",
     type=click.Path(path_type=Path, resolve_path=True, exists=True, dir_okay=False),
 )
 @click.option("-n", "--name")

@@ -14,6 +14,11 @@ def display_frequencies_comparison(comparison: EmbeddingComparison):
     """
     emb1, emb2 = comparison.embeddings
 
+    if hasattr(comparison, "labels"):
+        labels = comparison.labels[1]
+    else:
+        labels = {}
+
     if not emb1.is_frequency_set() or not emb2.is_frequency_set():
         return st.warning("Embeddings should both contain frequencies to compare them")
 
@@ -45,7 +50,7 @@ def display_frequencies_comparison(comparison: EmbeddingComparison):
 
     df_freqs = pd.DataFrame(
         {
-            "element": comparison.common_keys,
+            "element": [labels.get(k, k) for k in comparison.common_keys],
             "freq_emb1": emb1_freqs,
             "freq_emb2": emb2_freqs,
             "diff": diff,

@@ -29,6 +29,7 @@ def test_add(embeddings_datadir: Path, frequencies_datadir: Path, tmp_path: Path
                 cli.cli,
                 [
                     "add",
+                    "-p",
                     emb_path.resolve().as_posix(),
                     "--frequencies",
                     freq_path.resolve().as_posix(),
@@ -87,6 +88,7 @@ def test_report(embeddings_datadir: Path, frequencies_datadir: Path, tmp_path: P
                 cli.cli,
                 [
                     "add",
+                    "-p",
                     (embeddings_datadir / embedding_file).resolve().as_posix(),
                     "-f",
                     embedding_format,

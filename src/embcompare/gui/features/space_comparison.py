@@ -17,6 +17,9 @@ def display_spaces_comparison(comparison: EmbeddingComparison):
     logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
 
+    if not hasattr(comparison, "labels"):
+        comparison.labels = ({}, {})
+
     # Principal Component Analysis visualization
     st.subheader("Principal Component Analysis visualization")
     st.markdown(

@@ -16,7 +16,11 @@ def display_neighborhoods_comparisons(
         elements (List[Tuple[str, float]]): The elements to compare
     """
     emb1, emb2 = comparison.embeddings
-    emb1_labels, emb2_labels = comparison.labels
+
+    if hasattr(comparison, "labels"):
+        emb1_labels, emb2_labels = comparison.labels
+    else:
+        emb1_labels, emb2_labels = ({}, {})
 
     least_similar_keys, least_similar_sim = list(zip(*elements))
 
@@ -90,7 +94,7 @@ def display_neighborhoods_comparisons(
 
 
 def display_elements_comparison(comparison: EmbeddingComparison):
-    """Display a comparison between element neighborhoods  
+    """Display a comparison between element neighborhoods
 
     Args:
         comparison (EmbeddingComparison): an EmbeddingComparison object
