@@ -101,7 +101,10 @@ def report(
     output: str,
     config_path: Path,
 ):
-    config = load_config(config_path, autocreate="confirm")[CONFIG_EMBEDDINGS]
+    try:
+        config = load_config(config_path, autocreate="no")[CONFIG_EMBEDDINGS]
+    except (FileNotFoundError, KeyError):
+        config = {}
 
     embeddings_infos = {}
 
@@ -144,7 +147,7 @@ def report(
             )
 
     if len(embeddings_infos) == 1:
-        emb_infos = next(embeddings_infos.values())
+        emb_infos = next(iter(embeddings_infos.values()))
 
         embedding = load_embedding(
             embedding_path=emb_infos["embedding_path"],
