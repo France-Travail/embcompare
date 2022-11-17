@@ -8,7 +8,7 @@ import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
 
 from .embedding import Embedding
-from .sequences_similarity import damerau_levenshtein_similarity as ordered_sim
+from .sequences_similarity import solard_similarity as ordered_sim
 
 TEmbeddingComparison = TypeVar("TEmbeddingComparison", bound="EmbeddingComparison")
 

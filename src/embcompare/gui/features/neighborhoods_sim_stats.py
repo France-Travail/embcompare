@@ -78,6 +78,59 @@ def display_neighborhoods_similarities(comparison: EmbeddingComparison):
     Args:
         comparison (EmbeddingComparison): embedding comparison
     """
+    # Neighborhoods ordered similarity
+    logger.info(f"Computing neighborhoods_ordered_similarities_values...")
+
+    neighborhood_o_sim_values = comparison.neighborhoods_ordered_similarities_values
+    df_sim = pd.DataFrame({"similarity": neighborhood_o_sim_values})
+
+    logger.info(f"Displaying ordered neighborhoods similarities histogram...")
+
+    st.subheader("Neighborhoods ordered similarities")
+
+    with st.expander("📘 Further explanations"):
+        st.markdown(
+            f"""The ordered neighborhood similarity is a measure of how similar the nearest 
+neighbors of an element are in the two embeddings.
+
+Considering the $n$ nearest neighbors $a_{{1..n}} = (a_1, a_2, ..., a_n)$ and $b_{{1..n}} = (b_1, b_2, ..., b_n)$
+of a same element in two different embeddings $A$ and $B$, we define the neighborhood ordered similiraty as follow : 
+
+$$S(a_{{1..n}}, b_{{1..n}}) = \\frac{{1}}{{n}} \sum_{{k=1}}^{{n}} \\left( \\frac{{|a_{{1..k}} \\cap b_{{1..k}}|}}{{k}} \\right)$$
+
+When the similarity is 1, the element has the same nearest neighbors in both embeddings and in the same order.
+
+Thus, the median similarity tells how identical are the neighborhoods of the two embeddings while taking into account 
+the order of neighbors.
+
+> _Reminder: we use the {comparison.n_neighbors} nearest neighbors to compute the similarities_
+"""
+        )
+
+    st.altair_chart(
+        alt.Chart(df_sim)
+        .mark_bar()
+        .encode(
+            x=alt.X("similarity", bin=alt.Bin(extent=[0, 1], maxbins=10), title=None),
+            y=alt.Y("count()", axis=None),
+            color=alt.Color(
+                "similarity", scale=alt.Scale(scheme="redyellowblue", domain=[0, 1])
+            ),
+        ),
+        use_container_width=True,
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(
+            "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
+        )
+
+    if comparison.is_frequencies_set():
+        with col2:
+            weighted_median = compute_weighted_median_ordered_similarity(comparison)
+            st.metric("Frequency-weighted median similarity", f"{weighted_median:.1%}")
+
     # Neighborhoods similarities
     logger.info(f"Computing neighborhoods_similarities_values...")
     neighborhood_sim_values = comparison.neighborhoods_similarities_values
@@ -121,54 +174,4 @@ The median similarity tells how identical are the neighborhoods of the two embed
     if comparison.is_frequencies_set():
         with col2:
             weighted_median = compute_weighted_median_similarity(comparison)
-            st.metric("Frequency-weighted median similarity", f"{weighted_median:.1%}")
-
-    # Neighborhoods ordered similarity
-    logger.info(f"Computing neighborhoods_ordered_similarities_values...")
-
-    neighborhood_o_sim_values = comparison.neighborhoods_ordered_similarities_values
-    df_sim = pd.DataFrame({"similarity": neighborhood_o_sim_values})
-
-    logger.info(f"Displaying ordered neighborhoods similarities histogram...")
-
-    st.subheader("Neighborhoods ordered similarities")
-
-    with st.expander("📘 Further explanations"):
-        st.markdown(
-            f"""We define neighborhood ordered similiraty as the 
-[edit distance similarity](https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance) between the 
-two sequences of ordered nearest neighbors of a same element in each embedding.
-
-When the similarity is 1, the element has the same neighbors in both embeddings and in the same order according
-to their cosine distances to the element.
-
-The median similarity tells how identical are the neighborhoods of the two embeddings while taking into account 
-the order of neighbors.
-
-> _Reminder: we use the {comparison.n_neighbors} nearest neighbors to compute the similarities_
-"""
-        )
-
-    st.altair_chart(
-        alt.Chart(df_sim)
-        .mark_bar()
-        .encode(
-            x=alt.X("similarity", bin=alt.Bin(extent=[0, 1], maxbins=10), title=None),
-            y=alt.Y("count()", axis=None),
-            color=alt.Color(
-                "similarity", scale=alt.Scale(scheme="redyellowblue", domain=[0, 1])
-            ),
-        ),
-        use_container_width=True,
-    )
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(
-            "Median ordered similarity", f"{np.median(neighborhood_o_sim_values):.1%}"
-        )
-
-    if comparison.is_frequencies_set():
-        with col2:
-            weighted_median = compute_weighted_median_ordered_similarity(comparison)
             st.metric("Frequency-weighted median similarity", f"{weighted_median:.1%}")

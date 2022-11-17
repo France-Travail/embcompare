@@ -77,3 +77,35 @@ def damerau_levenshtein_similarity(
         float: returns the damerau-levensthein similarity between the two sequences
     """
     return 1 - damerau_levenshtein_distance(s1, s2) / max(len(s1), len(s2))
+
+
+def solard_similarity(s1: Sequence[Hashable], s2: Sequence[Hashable]) -> float:
+    """Solar similarity measure between to sequences
+
+    We define solard similarity as the arithmetic mean of partial Jaccard distances
+    but instead of dividing by the union of the two set, we divide by the size of the
+    sets, which the maximum number of distinct elements
+
+    Args:
+        s1 (Sequence[Hashable]): first sequence
+        s2 (Sequence[Hashable]): second sequence
+
+    Returns:
+        float: returns the solar similarity between the two sequences
+    """
+    n = max(len(s1), len(s2))
+
+    e1 = set()
+    e2 = set()
+
+    score = 0
+
+    for i in range(n):
+        if i < len(s1):
+            e1.add(s1[i])
+        if i < len(s2):
+            e2.add(s2[i])
+
+        score += len(e1.intersection(e2)) / (i + 1)
+
+    return score / n
