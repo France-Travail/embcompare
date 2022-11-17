@@ -31,6 +31,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Setup Nox
-      uses: daisylb/setup-nox@v2.1.0
+      uses: daisylb/setup-nox@v2
     - name: Run nox
       run: nox

@@ -25,6 +25,7 @@ dynamic = ["version"]
 homepage = "https://github.com/OSS-Pole-Emploi/emcompare"
 documentation = "https://github.com/OSS-Pole-Emploi/emcompare"
 repository = "https://github.com/OSS-Pole-Emploi/emcompare"
+"Bug Tracker" = "https://github.com/OSS-Pole-Emploi/emcompare/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
