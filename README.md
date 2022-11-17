@@ -1,47 +1,38 @@
-<div style="text-align: center;">
-    <h2>EmbCompare</h2>
-    <p style="font-weight: bold;">A simple python tool for embedding comparison </p>
+![tests](https://github.com/OSS-Pole-Emploi/emcompare/.github/workflows/package-unit-tests.yml/badge.svg)
+
+<div align="center">
+    <h1>EmbCompare</h1>
+    <p ><b>A simple python tool for embedding comparison</b></p>
 </div>
 
 EmbCompare is a small python package highly inspired by the [Embedding Comparator tool](https://github.com/mitvis/embedding-comparator) 
 that helps you compare your embeddings both visually and numerically.
 
-<div style="
-    color: #93a1a1;
-    background-color: #002b36;
-    border: solid #073642 3px;
-    border-radius: 1rem; 
-    font-size: small;
-    padding: 0.75rem;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-">
-EmbCompare keeps comparisons simples. All computations are made in memory and the package does not bring any embeddings storage management.
-
-If you need a tool to store, track and compare your embedding generation experiments, you may like the [vectory](https://github.com/pentoai/vectory) project.
-</div>
-
 ### Key features : 
 - **Visual comparison** : GUI for comparison of two embeddings
 - **Numerical comparison** : Calculation of comparison indicators between two embeddings for monitoring purposes
 
+> EmbCompare keeps things simples. All computations are made in memory and the package does not bring any embedding storage management.
+>
+> If you need a tool to store, compare and track your experiments, you may like the [vectory](https://github.com/pentoai/vectory) project.
+
 # Table of content
 
 - [Table of content](#table-of-content)
-- [Installation](#installation)
-- [Usage](#usage)
+- [🛠️ Installation](#️-installation)
+- [👩‍💻 Usage](#-usage)
   - [Config file](#config-file)
   - [JSON comparison report generation](#json-comparison-report-generation)
   - [GUI](#gui)
-- [Python API](#python-api)
+- [🐍 Python API](#-python-api)
   - [Embedding](#embedding)
   - [EmbeddingComparison](#embeddingcomparison)
   - [JSON reports](#json-reports)
     - [EmbeddingReport](#embeddingreport)
     - [EmbeddingComparisonReport](#embeddingcomparisonreport)
-- [Create your custom streamlit app](#create-your-custom-streamlit-app)
+- [📊 Create your custom streamlit app](#-create-your-custom-streamlit-app)
 
-# Installation
+# 🛠️ Installation
 
 ```bash
 # basic install
@@ -51,7 +42,7 @@ pip install embcompare
 pip install embcompare[gui]
 ```
 
-# Usage
+# 👩‍💻 Usage
 
 EmbCompare provides a CLI with three sub-commands : 
 
@@ -108,7 +99,7 @@ generated embedding is very different from the last one. The command `embcompare
 The GUI is also very handy to compare embeddings. To start the GUI, use the commande `embcompare gui`. 
 It will launch a streamlit app that will allow you to visually compare the embeddings you added in the configuration file.
 
-# Python API
+# 🐍 Python API
 
 EmbCompare provide several classes to load and compare embeddings. 
 ## Embedding
@@ -192,7 +183,7 @@ report.to_dict()
 # }
 ```
 
-# Create your custom streamlit app
+# 📊 Create your custom streamlit app
 
 The GUI is built with [streamlit](https://streamlit.io/). We tried to modularized the app so you can 
 more easily reuse some features for your custom streamlit app : 

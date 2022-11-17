@@ -9,6 +9,7 @@ authors = [
     { name = "Agence Data Services PE Aix / Nantes" },
     { name = "Hakim", email = "hakim.cheikh-ext@pole-emploi.fr" },
 ]
+license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.7,<4.0"
 dependencies = [
