@@ -103,7 +103,9 @@ generated embedding is very different from the last one. The command `embcompare
 
 ## GUI
 
-![A short video overview of embcompare graphical user interface ](.assets/overview.webm)
+<video src=".assets/overview.webm" type="video/webm">
+  A short video overview of embcompare graphical user interface
+</video>
 
 The GUI is also very handy to compare embeddings. To start the GUI, use the commande `embcompare gui`. 
 It will launch a streamlit app that will allow you to visually compare the embeddings you added in the configuration file.
