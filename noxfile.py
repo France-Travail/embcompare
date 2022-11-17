@@ -3,5 +3,5 @@ import nox
 
 @nox.session
 def tests(session):
-    session.install(".[dev]")
+    session.install(".[test]")
     session.run("pytest")

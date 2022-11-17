@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "embcompare"
-description = "Suivi des embeddings"
+description = "EmbCompare is a small python package that helps you compare your embeddings both visually and numerically."
 authors = [
     { name = "Agence Data Services PE Aix / Nantes" },
     { name = "Hakim", email = "hakim.cheikh-ext@pole-emploi.fr" },
@@ -21,9 +21,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-# homepage = ""
-# documentation = ""
-# repository = ""
+homepage = "https://github.com/OSS-Pole-Emploi/emcompare"
+documentation = "https://github.com/OSS-Pole-Emploi/emcompare"
+repository = "https://github.com/OSS-Pole-Emploi/emcompare"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -46,6 +46,7 @@ dev = [
     "pytest-datadir>=1.0,<2.0",
     "nox>=2022",
 ]
+test = ["pytest>=7.0,<8.0", "pytest-cov>=3.0,<4.0", "pytest-datadir>=1.0,<2.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

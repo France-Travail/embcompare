@@ -3,7 +3,8 @@
     <p style="font-weight: bold;">A simple python tool for embedding comparison </p>
 </div>
 
-EmbCompare is a small python package highly inspired by the [Embedding Comparator tool](https://github.com/mitvis/embedding-comparator) that helps you compare your embeddings both visually and numerically.
+EmbCompare is a small python package highly inspired by the [Embedding Comparator tool](https://github.com/mitvis/embedding-comparator) 
+that helps you compare your embeddings both visually and numerically.
 
 <div style="
     color: #93a1a1;
@@ -32,6 +33,13 @@ If you need a tool to store, track and compare your embedding generation experim
   - [Config file](#config-file)
   - [JSON comparison report generation](#json-comparison-report-generation)
   - [GUI](#gui)
+- [Python API](#python-api)
+  - [Embedding](#embedding)
+  - [EmbeddingComparison](#embeddingcomparison)
+  - [JSON reports](#json-reports)
+    - [EmbeddingReport](#embeddingreport)
+    - [EmbeddingComparisonReport](#embeddingcomparisonreport)
+- [Create your custom streamlit app](#create-your-custom-streamlit-app)
 
 # Installation
 
@@ -97,4 +105,182 @@ generated embedding is very different from the last one. The command `embcompare
 
 ![A short video overview of embcompare graphical user interface ](.assets/overview.webm)
 
-The GUI is also very handy to compare embeddings. To start the GUI, use the commande `embcompare gui`. It will launch a streamlit app that will allow you to visually compare the embeddings you added in the configuration file.
+The GUI is also very handy to compare embeddings. To start the GUI, use the commande `embcompare gui`. 
+It will launch a streamlit app that will allow you to visually compare the embeddings you added in the configuration file.
+
+# Python API
+
+EmbCompare provide several classes to load and compare embeddings. 
+## Embedding
+
+The `Embedding` class is child of the [`gensim.KeyedVectors`](https://radimrehurek.com/gensim/models/keyedvectors.html) class.
+
+It add few functionalities : 
+- You can provide term frequencies so you can filter the elements later
+- You can easily compute all elements nearest neighbors (thanks to 
+  [sklearn.neighbors.NearestNeighbors](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html))
+
+```python
+import json
+import gensim.downloader as api
+from embcompare import Embedding
+
+word_vectors = api.load("glove-wiki-gigaword-100")
+with open("frequencies.json", "r") as f:
+  word_frequencies = json.load(f)
+
+embedding = Embedding.load_from_keyedvectors(word_vectors, frequencies=word_frequencies)
+neigh_dist, neigh_ind = embedding.compute_neighborhoods()
+```
+## EmbeddingComparison
+
+The `EmbeddingComparison` class is meant to compare two `Embedding` objects : 
+
+```python
+from embcompare import EmbeddingComparison, load_embedding
+
+emb1 = load_embedding("first_emb.bin", embedding_format="fasttext", frequencies_path="freqs.pkl")
+emb2 = load_embedding("second_emb.bin", embedding_format="word2vec", frequencies_path="freqs.pkl")
+
+comparison = EmbeddingComparison({"emb1": emb1, "emb2": emb2}, n_neighbors=25)
+comparison.neighborhoods_similarities["word"]
+# 0.867
+```
+## JSON reports
+### EmbeddingReport
+The `EmbeddingReport` class is used to generate small report about an embedding : 
+
+```python
+from embcompare import EmbeddingReport, load_embedding
+
+emb1 = load_embedding("first_emb.bin", embedding_format="fasttext", frequencies_path="freqs.pkl")
+report = EmbeddingReport(emb1)
+report.to_dict()
+# { 
+#   "vector_size": 300,
+#   "mean_frequency": 0.00012,
+#   "mean_distance_neighbors": 0.023,
+#   ...
+# }
+```
+
+### EmbeddingComparisonReport
+The `EmbeddingComparisonReport` class is used to generate small comparison report from two embedding : 
+
+```python
+from embcompare import EmbeddingComparison, EmbeddingComparisonReport, load_embedding
+
+emb1 = load_embedding("first_emb.bin", embedding_format="fasttext", frequencies_path="freqs.pkl")
+emb2 = load_embedding("second_emb.bin", embedding_format="word2vec", frequencies_path="freqs.pkl")
+
+comparison = EmbeddingComparison({"emb1": emb1, "emb2": emb2})
+report = EmbeddingComparisonReport(comparison)
+
+report.to_dict()
+# {
+#   "embeddings" : [
+#     { 
+#       "vector_size": 300,
+#       "mean_frequency": 0.00012,
+#       "mean_distance_neighbors": 0.023,
+#       ...
+#     },
+#     ...
+#   ],
+#   "neighborhoods_similarities_median": 0.012,
+#   ...
+# }
+```
+
+# Create your custom streamlit app
+
+The GUI is built with [streamlit](https://streamlit.io/). We tried to modularized the app so you can 
+more easily reuse some features for your custom streamlit app : 
+
+```python
+# embcompare/gui/app.py
+
+from embcompare.gui.features import (
+    display_custom_elements_comparison,
+    display_elements_comparison,
+    display_embeddings_config,
+    display_frequencies_comparison,
+    display_neighborhoods_similarities,
+    display_numbers_of_elements,
+    display_parameters_selection,
+    display_spaces_comparison,
+    display_statistics_comparison,
+)
+from embcompare.gui.helpers import create_comparison
+
+def main():
+    """Streamlit app for embeddings comparison"""
+    config_embeddings = config[CONFIG_EMBEDDINGS]
+
+    (
+        tab_infos,
+        tab_stats,
+        tab_spaces,
+        tab_neighbors,
+        tab_compare,
+        tab_compare_custom,
+        tab_frequencies,
+    ) = st.tabs(
+        [
+            "Infos",
+            "Statistics",
+            "Spaces",
+            "Similarities",
+            "Elements",
+            "Search elements",
+            "Frequencies",
+        ]
+    )
+
+    # Embedding selection (inside the sidebar)
+    with st.sidebar:
+        parameters = display_parameters_selection(config_embeddings)
+
+    # Display informations about embeddings
+    with tab_infos:
+        display_embeddings_config(
+            config_embeddings, parameters.emb1_id, parameters.emb2_id
+        )
+
+    comparison = create_comparison(
+        config_embeddings,
+        emb1_id=parameters.emb1_id,
+        emb2_id=parameters.emb2_id,
+        n_neighbors=parameters.n_neighbors,
+        max_emb_size=parameters.max_emb_size,
+        min_frequency=parameters.min_frequency,
+    )
+
+    # Display number of element in both embedding and common elements
+    with tab_infos:
+        display_numbers_of_elements(comparison)
+
+    # Display statistics
+    with tab_stats:
+        display_statistics_comparison(comparison)
+
+    if not comparison.common_keys:
+        st.warning("The embeddings have no element in common")
+        st.stop()
+
+    # Comparison below are based on common elements comparison
+    with tab_spaces:
+        display_spaces_comparison(comparison)
+
+    with tab_neighbors:
+        display_neighborhoods_similarities(comparison)
+
+    with tab_compare:
+        display_elements_comparison(comparison)
+
+    with tab_compare_custom:
+        display_custom_elements_comparison(comparison)
+
+    with tab_frequencies:
+        display_frequencies_comparison(comparison)
+```
