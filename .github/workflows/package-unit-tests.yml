@@ -20,7 +20,6 @@ on:
 
 jobs:
   tests:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,6 +30,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Setup Nox
-      uses: daisylb/setup-nox@v2
+      uses: daisylb/setup-nox@v2.1.0
     - name: Run nox
       run: nox
