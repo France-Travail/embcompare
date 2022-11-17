@@ -164,10 +164,10 @@ def test_neighborhoods_ordered_similarities(comparison_AB: EmbeddingComparison):
     assert comparison_AB.neighborhoods_ordered_similarities == {
         "d": 1.0,
         "g": 1.0,
-        "a": 0.5,
-        "c": 0.0,
-        "e": 0.5,
-        "f": 0.0,
+        "a": 0.25,
+        "c": 0.25,
+        "e": 0.25,
+        "f": 0.25,
         "b": 0.0,
         "h": 0.0,
     }
