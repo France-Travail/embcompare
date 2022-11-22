@@ -47,7 +47,7 @@ def display_neighborhoods_comparisons(
                         freq = emb.get_frequency(key)
                         freq_str = f"{freq:.4f}" if freq > 0.0001 else f"{freq:.1e}"
 
-                        st.write(f"term ferquency : {freq_str}")
+                        st.write(f"term frequency : {freq_str}")
 
             neighbors1 = {k: s for k, s in neighborhoods_1[key]}
             neighbors2 = {k: s for k, s in neighborhoods_2[key]}
