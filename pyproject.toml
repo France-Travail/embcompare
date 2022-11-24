@@ -55,5 +55,8 @@ testpaths = ["tests"]
 addopts = "-v --cov=embcompare --cov-fail-under=80 --cov-config=.coveragerc"
 filterwarnings = ["ignore:Please use `triu` from the `scipy.linalg`"]
 
+[tool.isort]
+profile = "black"
+
 [project.scripts]
 embcompare = "embcompare.cli:cli"
