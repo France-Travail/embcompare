@@ -10,9 +10,8 @@ on:
     paths:
       - 'src/**'
 jobs:
-  tests:
+  analysis:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v3
