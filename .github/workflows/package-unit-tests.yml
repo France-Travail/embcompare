@@ -3,21 +3,20 @@ name: Unit tests
 on:
   push:
     branches: [ "main", "develop" ]
-    paths-ignore:
-      - '.github/workflows/**'
-      - '.assets'
-      - '*.md'
-      - 'LICENSE'
-      - 'Makefile'
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'noxfile.py'
   pull_request:
     branches: [ "main", "develop" ]
-    paths-ignore:
-      - '.github/workflows/**'
-      - '.assets'
-      - '*.md'
-      - 'LICENSE'
-      - 'Makefile'
-
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'noxfile.py'
 jobs:
   tests:
     runs-on: ubuntu-latest
