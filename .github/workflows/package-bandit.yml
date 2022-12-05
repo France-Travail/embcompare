@@ -1,0 +1,22 @@
+name: Bandit analysis
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'src/**'
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'src/**'
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Intall bandit
+      run: pip install bandit[toml]
+    - name: Run bandit
+      run: bandit -c pyproject.toml -r src

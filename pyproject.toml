@@ -53,10 +53,16 @@ test = ["pytest>=7.0,<8.0", "pytest-cov>=3.0,<5.0", "pytest-datadir>=1.0,<2.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=embcompare --cov-fail-under=80 --cov-config=.coveragerc"
-filterwarnings = ["ignore:Please use `triu` from the `scipy.linalg`"]
+filterwarnings = [
+    "ignore:Please use `triu` from the `scipy.linalg`",
+    "ignore:The hookimpl CovPlugin.pytest",
+]
 
 [tool.isort]
 profile = "black"
+
+[tool.bandit]
+skips = ["B301", "B403"]
 
 [project.scripts]
 embcompare = "embcompare.cli:cli"

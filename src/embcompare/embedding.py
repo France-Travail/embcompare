@@ -190,9 +190,17 @@ class Embedding(KeyedVectors):
         nn.fit(self.vectors)
         nn_dist, nn_ids = nn.kneighbors(self.vectors)
 
-        assert nn_dist.shape == nn_ids.shape
-        assert nn_dist.shape[0] == len(self.index_to_key)
-        assert nn_dist.shape[1] == n_neighbors + 1
+        if not all(
+            (
+                nn_dist.shape == nn_ids.shape,
+                nn_dist.shape[0] == len(self.index_to_key),
+                nn_dist.shape[1] == n_neighbors + 1,
+            )
+        ):
+            raise AssertionError(
+                f"Dimensions mismatch : nn_dist.shape={ nn_dist.shape} and nn_dist.shape={nn_ids.shape} "
+                f"should be equal to {(len(self.index_to_key), n_neighbors + 1)}"
+            )
 
         # We skip the first element of each row because it is the element itself
         self.__neighborhoods = (

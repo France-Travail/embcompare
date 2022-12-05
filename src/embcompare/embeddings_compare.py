@@ -26,9 +26,10 @@ class EmbeddingComparison:
         """
         self.n_neighbors = n_neighbors
 
-        assert (
-            isinstance(embeddings, dict) and len(embeddings) == 2
-        ), "embeddings should be a python dict containing two embeddings"
+        if not isinstance(embeddings, dict) and len(embeddings) == 2:
+            raise AssertionError(
+                "embeddings should be a python dict containing two embeddings"
+            )
 
         self.__embeddings_ids = tuple(emb_id for emb_id in embeddings.keys())
         self.__embeddings = tuple(
