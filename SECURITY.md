@@ -8,7 +8,7 @@ In order to limit these vulnerabilities, we are in the regular process of upgrad
 
 | Version | Supported          |
 | ------- | ------------------ |
-| > 1.0   | :white_check_mark: |
+| >= 1.0  | :white_check_mark: |
 
 ## Reporting a Vulnerability
 

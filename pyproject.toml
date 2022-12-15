@@ -6,12 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "embcompare"
 description = "EmbCompare is a small python package that helps you compare your embeddings both visually and numerically."
 authors = [
-    { name = "Agence Data Services PE Aix / Nantes" },
-    { name = "Hakim", email = "hakim.cheikh-ext@pole-emploi.fr" },
+    { name = "Agence Data Services PE Nantes", email = "contactadsaiframeworks.00619@pole-emploi.fr" },
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">=3.7,<4.0"
+requires-python = ">=3.8,<4.0"
 dependencies = [
     "gensim>=4.0,<5.0",
     "scikit-learn>=1.1,<1.3",
