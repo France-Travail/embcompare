@@ -2,8 +2,8 @@
     <img src="https://img.shields.io/pypi/v/embcompare" alt="EmbCompare package version" />
     <img src="https://img.shields.io/pypi/pyversions/embcompare" alt="Python supported versions" />
     <img src="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml/badge.svg" alt="unit tests status" />
-    <a href="https://www.gnu.org/licenses/agpl-3.0">
     <img src="https://img.shields.io/badge/coverage-%3E90%25-green" alt="Badge indicating more than 90% coverage" />
+    <a href="https://www.gnu.org/licenses/agpl-3.0">
         <img src="https://img.shields.io/pypi/l/embcompare" alt="License AGPL-3" />
     </a>
     <a href="https://github.com/PyCQA/bandit">
