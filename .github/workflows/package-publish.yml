@@ -1,5 +1,7 @@
 name: Publish on pypi
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       pypi_repo:
@@ -12,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # in order to get all tags for setuptools_scm
     
     - uses: actions/setup-python@v3
       with:
