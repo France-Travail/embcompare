@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=41", "setuptools-git-versioning<2"]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,6 +10,20 @@ authors = [
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
+
+classifiers = [
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: User Interfaces",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+]
+
 requires-python = ">=3.8,<4.0"
 dependencies = [
     "gensim>=4.0,<5.0",
@@ -29,8 +43,8 @@ repository = "https://github.com/OSS-Pole-Emploi/emcompare"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools-git-versioning]
-enabled = true
+[tool.setuptools_scm]
+write_to = "src/embcompare/_version.py"
 
 [project.optional-dependencies]
 gui = [
