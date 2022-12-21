@@ -1,7 +1,11 @@
 <div align="center">
-    <img src="https://img.shields.io/pypi/v/embcompare" alt="EmbCompare package version" />
+    <a href="https://pypi.org/project/embcompare">
+        <img src="https://img.shields.io/pypi/v/embcompare" alt="EmbCompare package version" />
+    </a>
     <img src="https://img.shields.io/pypi/pyversions/embcompare" alt="Python supported versions" />
-    <img src="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml/badge.svg" alt="unit tests status" />
+    <a href="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml">
+        <img src="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml/badge.svg" alt="unit tests status" />
+    </a>
     <img src="https://img.shields.io/badge/coverage-%3E90%25-green" alt="Badge indicating more than 90% coverage" />
     <a href="https://www.gnu.org/licenses/agpl-3.0">
         <img src="https://img.shields.io/pypi/l/embcompare" alt="License AGPL-3" />
@@ -9,7 +13,9 @@
     <a href="https://github.com/PyCQA/bandit">
         <img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security thanks to bandit package" />
     </a>
-    <img src="https://img.shields.io/badge/formatting-black-black" alt="Black formatting" />
+    <a href="https://github.com/psf/black">
+        <img src="https://img.shields.io/badge/formatting-black-black" alt="Black formatting" />
+    </a>
 </div>
 
 <div align="center">
