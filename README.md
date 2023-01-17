@@ -1,7 +1,11 @@
 <div align="center">
-    <img src="https://img.shields.io/pypi/v/embcompare" alt="EmbCompare package version" />
+    <a href="https://pypi.org/project/embcompare">
+        <img src="https://img.shields.io/pypi/v/embcompare" alt="EmbCompare package version" />
+    </a>
     <img src="https://img.shields.io/pypi/pyversions/embcompare" alt="Python supported versions" />
-    <img src="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml/badge.svg" alt="unit tests status" />
+    <a href="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml">
+        <img src="https://github.com/OSS-Pole-Emploi/embcompare/actions/workflows/package-unit-tests.yml/badge.svg" alt="unit tests status" />
+    </a>
     <img src="https://img.shields.io/badge/coverage-%3E90%25-green" alt="Badge indicating more than 90% coverage" />
     <a href="https://www.gnu.org/licenses/agpl-3.0">
         <img src="https://img.shields.io/pypi/l/embcompare" alt="License AGPL-3" />
@@ -9,7 +13,9 @@
     <a href="https://github.com/PyCQA/bandit">
         <img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security thanks to bandit package" />
     </a>
-    <img src="https://img.shields.io/badge/formatting-black-black" alt="Black formatting" />
+    <a href="https://github.com/psf/black">
+        <img src="https://img.shields.io/badge/formatting-black-black" alt="Black formatting" />
+    </a>
 </div>
 
 <div align="center">
@@ -28,9 +34,7 @@ that helps you compare your embeddings both visually and numerically.
 >
 > If you need a tool to store, compare and track your experiments, you may like the [vectory](https://github.com/pentoai/vectory) project.
 
-# Table of content
-
-- [Table of content](#table-of-content)
+## Table of content <!-- omit from toc -->
 - [🛠️ Installation](#️-installation)
 - [👩‍💻 Usage](#-usage)
   - [Config file](#config-file)
@@ -44,7 +48,7 @@ that helps you compare your embeddings both visually and numerically.
     - [EmbeddingComparisonReport](#embeddingcomparisonreport)
 - [📊 Create your custom streamlit app](#-create-your-custom-streamlit-app)
 
-# 🛠️ Installation
+## 🛠️ Installation
 
 ```bash
 # basic install
@@ -54,7 +58,7 @@ pip install embcompare
 pip install embcompare[gui]
 ```
 
-# 👩‍💻 Usage
+## 👩‍💻 Usage
 
 EmbCompare provides a CLI with three sub-commands : 
 
@@ -62,7 +66,7 @@ EmbCompare provides a CLI with three sub-commands :
 - `embcompare report` is used to generate json reports containing comparison metrics ;
 - `embcompare gui` is used to start a [streamlit](https://streamlit.io/) webapp to compare your embeddings visually.
 
-## Config file
+### Config file
 
 EmbCompare use a yaml file for referencing embeddings and relevant informations. By default, EmbCompare is looking
 for a file named embcompare.yaml in the current working directory.
@@ -89,7 +93,7 @@ embeddings:
 
 The `embcompare add` command allow to update this file programatically (and even create it if it does not exist).
 
-## JSON comparison report generation
+### JSON comparison report generation
 
 EmbCompare aims to help to compare embedding thanks to numerical metrics that can be used to check if a new
 generated embedding is very different from the last one. The command `embcompare report` can be used in two ways : 
@@ -104,17 +108,17 @@ generated embedding is very different from the last one. The command `embcompare
   # creates a first_embedding_second_embedding_report.json file containing comparison metrics
   ```
 
-## GUI
+### GUI
 
 ![A short video overview of embcompare graphical user interface](.assets/overview.webp)
 
 The GUI is also very handy to compare embeddings. To start the GUI, use the commande `embcompare gui`. 
 It will launch a streamlit app that will allow you to visually compare the embeddings you added in the configuration file.
 
-# 🐍 Python API
+## 🐍 Python API
 
 EmbCompare provide several classes to load and compare embeddings. 
-## Embedding
+### Embedding
 
 The `Embedding` class is child of the [`gensim.KeyedVectors`](https://radimrehurek.com/gensim/models/keyedvectors.html) class.
 
@@ -135,7 +139,7 @@ with open("frequencies.json", "r") as f:
 embedding = Embedding.load_from_keyedvectors(word_vectors, frequencies=word_frequencies)
 neigh_dist, neigh_ind = embedding.compute_neighborhoods()
 ```
-## EmbeddingComparison
+### EmbeddingComparison
 
 The `EmbeddingComparison` class is meant to compare two `Embedding` objects : 
 
@@ -149,8 +153,8 @@ comparison = EmbeddingComparison({"emb1": emb1, "emb2": emb2}, n_neighbors=25)
 comparison.neighborhoods_similarities["word"]
 # 0.867
 ```
-## JSON reports
-### EmbeddingReport
+### JSON reports
+#### EmbeddingReport
 The `EmbeddingReport` class is used to generate small report about an embedding : 
 
 ```python
@@ -167,7 +171,7 @@ report.to_dict()
 # }
 ```
 
-### EmbeddingComparisonReport
+#### EmbeddingComparisonReport
 The `EmbeddingComparisonReport` class is used to generate small comparison report from two embedding : 
 
 ```python
@@ -195,7 +199,7 @@ report.to_dict()
 # }
 ```
 
-# 📊 Create your custom streamlit app
+## 📊 Create your custom streamlit app
 
 The GUI is built with [streamlit](https://streamlit.io/). We tried to modularized the app so you can 
 more easily reuse some features for your custom streamlit app : 

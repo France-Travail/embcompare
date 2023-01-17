@@ -8,9 +8,18 @@ description = "EmbCompare is a small python package that helps you compare your 
 authors = [
     { name = "Agence Data Services PE Nantes", email = "contactadsaiframeworks.00619@pole-emploi.fr" },
 ]
-license = { file = "LICENSE" }
+maintainers = [
+    { name = "Agence Data Services PE Nantes", email = "contactadsaiframeworks.00619@pole-emploi.fr" },
+]
+license = { text = "AGPL-3.0" }
 readme = "README.md"
-
+keywords = [
+    "embeddings",
+    "embedding-vectors",
+    "embeddings-similarity",
+    "embeddings-comparison",
+    "streamlit-dashboard",
+]
 classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
